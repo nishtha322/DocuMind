@@ -45,6 +45,16 @@ export const config = {
     // 768 is Google's recommended "good quality, lower storage cost" tier
     // (the model supports up to 3072 via Matryoshka Representation Learning).
     embeddingDimensions: Number(process.env.GEMINI_EMBEDDING_DIMENSIONS) || 768,
+    // gemini-3.6-flash is the current GA Flash-tier model (July 2026) — the
+    // right default for a RAG Q&A workload: fast, cheap, and strong at
+    // "answer using this context" style instruction following.
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.6-flash',
+    // Gemini 3.x models replaced temperature/top_p/top_k (deprecated on
+    // this model generation — see gemini-chat.service.js) with a
+    // thinkingLevel enum: minimal | low | medium | high. RAG answering is
+    // "read the context, follow instructions" rather than deep multi-step
+    // reasoning, so 'low' is a deliberate cost/latency-conscious default.
+    thinkingLevel: process.env.GEMINI_THINKING_LEVEL || 'LOW',
   },
   chroma: {
     host: process.env.CHROMA_HOST || 'localhost',

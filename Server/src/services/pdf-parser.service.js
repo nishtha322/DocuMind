@@ -1,5 +1,16 @@
 // src/services/pdf-parser.service.js
-
+//
+// WHY pdf-parse OVER pdfjs-dist:
+// pdfjs-dist (Mozilla's PDF.js) is the more "complete" library — it can
+// render pages, extract embedded images, handle complex layouts — but
+// that power comes with a much heavier API surface. We only need raw
+// text + page count for RAG chunking, and pdf-parse gives us exactly
+// that with a tiny API. If a future requirement needs page-accurate
+// layout extraction or rendering, pdfjs-dist is the documented upgrade
+// path — worth naming as a conscious scope decision, not an oversight.
+//
+// This file is the ONLY place that imports `pdf-parse` directly, so if
+// we ever swap PDF libraries, this is the one file that changes.
 
 import { readFile } from 'fs/promises';
 import { PDFParse } from 'pdf-parse';

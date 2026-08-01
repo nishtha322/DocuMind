@@ -17,12 +17,16 @@ const app = express();
 // Parse incoming JSON request bodies into req.body.
 app.use(express.json());
 
+
 app.use(pinoHttp({ logger }));
 
 
 app.use('/api/v1', routes);
 
+
 app.use(notFoundHandler);
+
+// Must be registered LAST — Express identifies this as an error handler
 
 app.use(errorHandler);
 
