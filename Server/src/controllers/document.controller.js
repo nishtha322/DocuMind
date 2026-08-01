@@ -3,6 +3,20 @@
 
 import { catchAsync } from '../utils/catchAsync.js';
 import * as documentService from '../services/document.service.js';
+import * as chunkRepository from '../repositories/chunk.repository.js';
+
+export const uploadDocument = catchAsync(async (req, res) => {
+
+  const document = await documentService.uploadAndProcessDocument(req.file);
+  res.status(201).json({ success: true, data: document });
+});
+
+export const getDocumentChunks = catchAsync(async (req, res) => {
+
+  await documentService.getDocumentById(req.params.id);
+  const chunks = await chunkRepository.findChunksByDocumentId(req.params.id);
+  res.status(200).json({ success: true, data: chunks });
+});
 
 export const createDocumentRecord = catchAsync(async (req, res) => {
   const { originalFilename, storagePath } = req.body;

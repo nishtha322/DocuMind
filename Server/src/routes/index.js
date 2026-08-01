@@ -10,7 +10,5 @@ const router = Router();
 router.use('/health', healthRoutes);
 router.use('/documents', documentRoutes);
 
-// Future modules will add lines like:
-// router.use('/chat', chatRoutes);
 
 export default router;
