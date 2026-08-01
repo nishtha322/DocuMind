@@ -4,7 +4,6 @@ import * as chatRepository from '../repositories/chat.repository.js';
 import { getDocumentById } from './document.service.js';
 import { AppError } from '../utils/AppError.js';
 
-
 export async function startSession(documentId, title = null) {
   await getDocumentById(documentId);
   return chatRepository.createSession(documentId, title);

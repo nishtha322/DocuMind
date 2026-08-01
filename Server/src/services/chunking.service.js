@@ -1,6 +1,5 @@
 // src/services/chunking.service.js
 
-
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 
 const CHUNK_SIZE = 1000; // characters per chunk

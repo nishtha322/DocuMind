@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: AI Document Assistant API
+  description: >
+    Upload PDFs and ask questions about them using Retrieval-Augmented
+    Generation (Gemini + ChromaDB). Interactive docs for every endpoint
+    built across Modules 1-7.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Reports API status and live connectivity to Postgres and ChromaDB.
+      tags: [System]
+      responses:
+        '200':
+          description: Service is up (dependency statuses reported individually)
+
+  /documents/upload:
+    post:
+      summary: Upload a PDF and run the full RAG ingestion pipeline
+      description: >
+        Saves the file, extracts text, chunks it, generates embeddings via
+        Gemini, and stores vectors in ChromaDB. Document status moves
+        through uploaded -> parsing -> embedding -> ready (or failed).
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Document created and pipeline started
+        '400':
+          description: Missing file, non-PDF file, or file too large (>20MB)
+
+  /documents:
+    get:
+      summary: List all documents
+      tags: [Documents]
+      responses:
+        '200':
+          description: Array of documents
+    post:
+      summary: Create a document metadata record (no real file — testing/demo use)
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [originalFilename, storagePath]
+              properties:
+                originalFilename:
+                  type: string
+                storagePath:
+                  type: string
+      responses:
+        '201':
+          description: Document record created
+        '400':
+          description: Validation error
+
+  /documents/{id}:
+    get:
+      summary: Get a document by ID
+      tags: [Documents]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      responses:
+        '200':
+          description: Document details
+        '400':
+          description: id is not a valid UUID
+        '404':
+          description: Document not found
+    delete:
+      summary: Delete a document (and its chunks + vectors)
+      tags: [Documents]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Document not found
+
+  /documents/{id}/chunks:
+    get:
+      summary: Get all chunks for a document
+      tags: [Documents]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      responses:
+        '200':
+          description: Array of chunks
+        '404':
+          description: Document not found
+
+  /documents/{id}/ask:
+    post:
+      summary: Ask a one-off question about a document (no conversation memory)
+      tags: [Q&A]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Answer with cited sources
+        '400':
+          description: Missing/invalid question, or invalid document id
+        '404':
+          description: Document not found
+        '409':
+          description: Document exists but isn't ready yet (still processing, or failed)
+        '429':
+          description: Rate limit exceeded (10 requests/minute on AI-calling routes)
+
+  /documents/{id}/sessions:
+    post:
+      summary: Create a new chat session for a document
+      tags: [Conversation Memory]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+      responses:
+        '201':
+          description: Session created
+        '404':
+          description: Document not found
+    get:
+      summary: List chat sessions for a document
+      tags: [Conversation Memory]
+      parameters:
+        - $ref: '#/components/parameters/documentId'
+      responses:
+        '200':
+          description: Array of sessions
+        '404':
+          description: Document not found
+
+  /sessions/{sessionId}/messages:
+    get:
+      summary: Get full message history for a session
+      tags: [Conversation Memory]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      responses:
+        '200':
+          description: Array of messages, chronological
+        '404':
+          description: Session not found
+    post:
+      summary: Ask a follow-up question within a session (with conversation memory)
+      tags: [Conversation Memory]
+      parameters:
+        - $ref: '#/components/parameters/sessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  maxLength: 2000
+      responses:
+        '200':
+          description: Answer with cited sources, aware of prior turns in this session
+        '400':
+          description: Missing/invalid question, or invalid session id
+        '404':
+          description: Session not found
+        '409':
+          description: Document isn't ready yet
+        '429':
+          description: Rate limit exceeded
+
+components:
+  parameters:
+    documentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    sessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid

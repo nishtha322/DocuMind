@@ -41,9 +41,10 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 20 * 1024 * 1024, // 20MB — generous for text-based PDFs, prevents abuse
+    fileSize: 20 * 1024 * 1024, 
   },
 });
+
 
 export function uploadPdf(req, res, next) {
   upload.single('file')(req, res, (err) => {
@@ -54,7 +55,7 @@ export function uploadPdf(req, res, next) {
       return next(new AppError(`Upload error: ${err.message}`, 400));
     }
     if (err) {
-      return next(err); // already an AppError from fileFilter, or a real bug
+      return next(err); 
     }
     if (!req.file) {
       return next(new AppError('No file uploaded. Expected field name "file".', 400));

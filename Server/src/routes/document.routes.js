@@ -12,26 +12,42 @@ import {
 import { askQuestion } from '../controllers/qa.controller.js';
 import { createSession, listSessions } from '../controllers/chat.controller.js';
 import { uploadPdf } from '../middleware/upload.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+import { aiLimiter } from '../middleware/rateLimit.middleware.js';
+import {
+  idParamSchema,
+  createDocumentBodySchema,
+  askQuestionBodySchema,
+  createSessionBodySchema,
+} from '../validators/document.validators.js';
 
 const router = Router();
 
-// Real upload flow: multipart/form-data with field name "file".
-// uploadPdf (multer) runs first — validates + saves the file to disk and
-// populates req.file — then uploadDocument takes over.
-router.post('/upload', uploadPdf, uploadDocument);
 
-router.post('/', createDocumentRecord);
+router.post('/upload', aiLimiter, uploadPdf, uploadDocument);
+
+router.post('/', validate(createDocumentBodySchema), createDocumentRecord);
 router.get('/', listDocuments);
-router.get('/:id', getDocument);
-router.get('/:id/chunks', getDocumentChunks);
-router.post('/:id/ask', askQuestion);
+router.get('/:id', validate(idParamSchema, 'params'), getDocument);
+router.get('/:id/chunks', validate(idParamSchema, 'params'), getDocumentChunks);
 
-// Conversation memory: a session groups a series of related questions
-// about ONE document so follow-ups have context. See chat.service.js and
-// rag.service.js (answerQuestionInSession) for the memory logic itself.
-router.post('/:id/sessions', createSession);
-router.get('/:id/sessions', listSessions);
 
-router.delete('/:id', deleteDocument);
+router.post(
+  '/:id/ask',
+  aiLimiter,
+  validate(idParamSchema, 'params'),
+  validate(askQuestionBodySchema),
+  askQuestion
+);
+
+router.post(
+  '/:id/sessions',
+  validate(idParamSchema, 'params'),
+  validate(createSessionBodySchema),
+  createSession
+);
+router.get('/:id/sessions', validate(idParamSchema, 'params'), listSessions);
+
+router.delete('/:id', validate(idParamSchema, 'params'), deleteDocument);
 
 export default router;

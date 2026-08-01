@@ -21,6 +21,7 @@ const externalEmbeddingFunction = {
 
 let collectionPromise = null;
 
+
 export function getCollection() {
   if (!collectionPromise) {
     collectionPromise = chromaClient.getOrCreateCollection({
@@ -32,9 +33,6 @@ export function getCollection() {
   return collectionPromise;
 }
 
-/**
- * Verifies the Chroma server is reachable — used by the health check.
- */
 export async function testChromaConnection() {
   await chromaClient.heartbeat();
   return true;

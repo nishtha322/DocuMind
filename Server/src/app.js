@@ -8,21 +8,35 @@
 
 import express from 'express';
 import pinoHttp from 'pino-http';
+import swaggerUi from 'swagger-ui-express';
+import { readFileSync } from 'fs';
+import { parse as parseYaml } from 'yaml';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { logger } from './utils/logger.js';
 import routes from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { generalLimiter } from './middleware/rateLimit.middleware.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
-// Parse incoming JSON request bodies into req.body.
+
 app.use(express.json());
 
 
 app.use(pinoHttp({ logger }));
 
 
-app.use('/api/v1', routes);
+const openApiSpec = parseYaml(readFileSync(path.join(__dirname, '..', 'openapi.yaml'), 'utf-8'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
+
+app.use('/api/v1', generalLimiter);
+
+
+app.use('/api/v1', routes);
 
 app.use(notFoundHandler);
 

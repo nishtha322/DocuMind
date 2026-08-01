@@ -8,14 +8,13 @@ export async function storeChunkEmbeddings(documentId, chunks, embeddings) {
   const collection = await getCollection();
 
   await collection.add({
- 
+
     ids: chunks.map((chunk) => chunk.id),
     embeddings,
     documents: chunks.map((chunk) => chunk.content),
     metadatas: chunks.map((chunk) => ({
       documentId,
       
-   
       chunkIndex: chunk.chunk_index,
     })),
   });

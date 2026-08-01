@@ -6,7 +6,7 @@ import { testConnection } from '../config/db.js';
 import { testChromaConnection } from '../config/chroma.js';
 
 export const getHealth = catchAsync(async (req, res) => {
-
+  
   const [dbStatus, chromaStatus] = await Promise.all([
     testConnection()
       .then(() => 'ok')

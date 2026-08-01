@@ -38,7 +38,13 @@ export async function findSessionsByDocument(documentId) {
   return rows;
 }
 
-
+/**
+ * Appends a message to a session.
+ * @param {string} sessionId
+ * @param {'user'|'assistant'} role
+ * @param {string} content
+ * @returns {Promise<object>}
+ */
 export async function createMessage(sessionId, role, content) {
   const { rows } = await pool.query(
     `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3) RETURNING *;`,
@@ -49,8 +55,7 @@ export async function createMessage(sessionId, role, content) {
 
 
 export async function findMessagesBySession(sessionId, limit = 100) {
-  // Fetch the most recent `limit` rows (DESC), then reverse to chronological
-  // order — simpler and more efficient than a window function for this scale.
+
   const { rows } = await pool.query(
     `SELECT * FROM (
        SELECT * FROM chat_messages WHERE session_id = $1 ORDER BY created_at DESC LIMIT $2
