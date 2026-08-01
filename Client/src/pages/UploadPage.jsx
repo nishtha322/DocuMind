@@ -1,16 +1,38 @@
 // src/pages/UploadPage.jsx
 
 
-import { Upload } from 'lucide-react';
+import { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { UploadDropzone } from '../components/documents/UploadDropzone';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 
 export function UploadPage() {
+  const { onUpload } = useOutletContext();
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleUpload(file) {
+    setError(null);
+    setIsUploading(true);
+    try {
+      await onUpload(file);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
-      <div className="flex w-full max-w-md flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface px-8 py-12">
-        <Upload size={28} className="text-accent" />
-        <p className="font-medium text-ink">Drop a PDF here, or click to browse</p>
-        <p className="text-sm text-ink-muted">PDF only · up to 20MB</p>
+      <div className="w-full max-w-md">
+        <UploadDropzone onUpload={handleUpload} isUploading={isUploading} />
       </div>
+      {error && (
+        <div className="w-full max-w-md">
+          <ErrorBanner message={error} />
+        </div>
+      )}
       <p className="text-sm text-ink-muted">
         Upload a document to start asking questions about it.
       </p>

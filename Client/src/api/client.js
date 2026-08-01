@@ -1,10 +1,11 @@
 // src/api/client.js
 
+
 import axios from 'axios';
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000, // generous — document upload + embedding can take a while
+  timeout: 30000, 
 });
 
 
