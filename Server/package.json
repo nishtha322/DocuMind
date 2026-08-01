@@ -30,7 +30,7 @@
     "zod": "^4.4.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+     "node": "22.x"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",
