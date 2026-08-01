@@ -1,32 +1,14 @@
-# DocuMind Backend
+# DocuMind — Backend
 
-A backend-first Retrieval-Augmented Generation (RAG) API that allows users to upload PDF documents and ask grounded questions about their content. The backend combines PostgreSQL for relational data, ChromaDB for vector search, and the Gemini API for embeddings and answer generation.
+The backend API for **DocuMind**: a Retrieval-Augmented Generation (RAG) service that lets you upload a PDF and ask questions about it, grounded in the document's actual content, with conversation memory for natural follow-ups.
 
-Built as a portfolio project demonstrating modern backend engineering with Node.js, Express, PostgreSQL, ChromaDB, Gemini API, LangChain text splitters, REST API design, prompt engineering, and layered architecture.
+This document covers the **backend only** (Node.js/Express API, Modules 1-8). For the React frontend, see [`Client/README.md`](./Client/README.md). For the whole-project overview, see the [root README](./README.md).
 
----
-
-## Features
-
-- Upload PDF documents
-- Automatic text extraction and chunking
-- Semantic embeddings using Gemini
-- Vector search with ChromaDB
-- Retrieval-Augmented Generation (RAG)
-- Persistent conversation memory
-- RESTful API
-- OpenAPI (Swagger) documentation
-- Request validation using Zod
-- Rate limiting
-- Unit testing with Vitest
-
----
-
-## Architecture
+## How it works
 
 ```
                  ┌──────────────┐
-  PDF Upload ──▶ │   Express    │
+  PDF upload ──▶ │   Express    │
                  │   REST API   │
                  └──────┬───────┘
                         │
@@ -34,222 +16,122 @@ Built as a portfolio project demonstrating modern backend engineering with Node.
         ▼               ▼                ▼
   ┌───────────┐   ┌───────────┐   ┌─────────────┐
   │ PostgreSQL│   │  ChromaDB │   │  Gemini API │
-  │ documents │   │  vectors  │   │ embeddings  │
-  │ chunks    │   │           │   │ + chat      │
-  │ sessions  │   │           │   │             │
+  │ documents │   │  vectors  │   │ embeddings +│
+  │ chunks    │   │(per-chunk)│   │    chat     │
+  │ chat log  │   │           │   │             │
   └───────────┘   └───────────┘   └─────────────┘
 ```
 
-### Document ingestion
+**Ingestion pipeline** (on upload): PDF → extract text (`pdf-parse`) → chunk into overlapping windows (LangChain `RecursiveCharacterTextSplitter`) → embed each chunk (Gemini `gemini-embedding-001`) → store vectors in ChromaDB, chunk text/metadata in Postgres.
+
+**Query pipeline** (on question): embed the question → similarity search in ChromaDB, scoped to the document → build a grounded prompt from the retrieved chunks → generate an answer (Gemini `gemini-3.6-flash`) → persist the turn if it's part of a chat session.
+
+Full architecture reasoning for every decision is documented inline in the source — see the header comment in each file under `src/`.
+
+## Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Runtime | Node.js (ESM) | |
+| API | Express.js | |
+| Relational data | PostgreSQL (raw SQL, no ORM) | Transparent, reviewable schema; no ORM "magic" |
+| Vector store | ChromaDB | Purpose-built for similarity search; Postgres handles relational data instead |
+| Embeddings + chat | Gemini API via `@google/genai` | Current official SDK — not the deprecated `@google/generative-ai` |
+| Chunking | LangChain `RecursiveCharacterTextSplitter` | Respects sentence/paragraph boundaries, not naive fixed-size cuts |
+| Validation | Zod | ESM-native, composable |
+| Testing | Vitest | ESM-native, zero-config with this project's `"type": "module"` setup |
+
+## Project structure
 
 ```
-PDF
- ↓
-Text Extraction
- ↓
-Chunking
- ↓
-Gemini Embeddings
- ↓
-Store vectors in ChromaDB
- ↓
-Store metadata in PostgreSQL
+src/
+├── routes/          URL -> controller mapping only
+├── controllers/      HTTP concerns (parse request, shape response)
+├── services/         Business logic / orchestration
+├── repositories/      Only layer that talks to Postgres
+├── vector-store/      Only layer that talks to ChromaDB
+├── ai/                Only layer that talks to Gemini
+├── prompts/           Versioned prompt templates
+├── middleware/         Validation, rate limiting, errors, upload
+├── validators/         Zod schemas
+├── config/             Env loading, DB pool, Chroma client
+└── utils/              Logger, AppError, catchAsync
+tests/unit/          Unit tests (mirrors src/)
+migrations/          Raw SQL schema
+scripts/migrate.js   Runs migrations in order
+openapi.yaml         Full API spec (served at /api-docs)
 ```
 
-### Question answering
-
-```
-Question
- ↓
-Gemini Embedding
- ↓
-Similarity Search (ChromaDB)
- ↓
-Build RAG Prompt
- ↓
-Gemini Chat
- ↓
-Grounded Answer
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|--------|------------|
-| Runtime | Node.js |
-| Framework | Express.js |
-| Database | PostgreSQL |
-| Vector Store | ChromaDB |
-| AI | Gemini API (`@google/genai`) |
-| Chunking | LangChain RecursiveCharacterTextSplitter |
-| Validation | Zod |
-| Documentation | OpenAPI + Swagger UI |
-| Logging | Pino |
-| Testing | Vitest |
-
----
-
-## Project Structure
-
-```
-Server/
-│
-├── src/
-│   ├── ai/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── prompts/
-│   ├── repositories/
-│   ├── routes/
-│   ├── services/
-│   ├── utils/
-│   ├── validators/
-│   └── vector-store/
-│
-├── migrations/
-├── scripts/
-├── tests/
-├── uploads/
-├── openapi.yaml
-├── package.json
-└── README.md
-```
-
----
-
-## Getting Started
-
-### Install dependencies
+## Getting started
 
 ```bash
 npm install
-```
+cp .env.example .env   # fill in GEMINI_API_KEY and DATABASE_URL
 
-### Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Configure:
-
-- PORT
-- DATABASE_URL
-- GEMINI_API_KEY
-
----
-
-### Run database migrations
-
-```bash
+# Postgres: point DATABASE_URL at any Postgres 14+ instance, then:
 npm run migrate
-```
 
----
+# ChromaDB:
+pip install chromadb --break-system-packages
+chroma run --path ./chroma_data   # runs on :8000
 
-### Start ChromaDB
-
-```bash
-chroma run --path ./chroma_data
-```
-
----
-
-### Start the server
-
-```bash
 npm run dev
 ```
 
-The API will be available at:
+The API is now running at `http://localhost:5000`, interactive docs at `http://localhost:5000/api-docs`.
 
-```
-http://localhost:5000
-```
+### Environment variables
 
-Swagger UI:
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `PORT` | yes | — | |
+| `DATABASE_URL` | yes | — | `postgresql://user:pass@host:port/db` |
+| `GEMINI_API_KEY` | yes | — | https://aistudio.google.com/apikey |
+| `GEMINI_EMBEDDING_MODEL` | no | `gemini-embedding-001` | |
+| `GEMINI_EMBEDDING_DIMENSIONS` | no | `768` | |
+| `GEMINI_CHAT_MODEL` | no | `gemini-3.6-flash` | |
+| `GEMINI_THINKING_LEVEL` | no | `LOW` | `MINIMAL`\|`LOW`\|`MEDIUM`\|`HIGH` |
+| `CHROMA_HOST` | no | `localhost` | |
+| `CHROMA_PORT` | no | `8000` | |
 
-```
-http://localhost:5000/api-docs
-```
+## API overview
 
----
+Full interactive docs at `GET /api-docs` once running. Summary:
 
-## Environment Variables
-
-| Variable | Required |
-|-----------|----------|
-| PORT | Yes |
-| DATABASE_URL | Yes |
-| GEMINI_API_KEY | Yes |
-| GEMINI_CHAT_MODEL | No |
-| GEMINI_EMBEDDING_MODEL | No |
-| GEMINI_EMBEDDING_DIMENSIONS | No |
-| GEMINI_THINKING_LEVEL | No |
-| CHROMA_HOST | No |
-| CHROMA_PORT | No |
-
----
-
-## API
-
-| Endpoint | Description |
-|-----------|-------------|
-| POST `/api/v1/documents/upload` | Upload a PDF |
-| GET `/api/v1/documents` | List documents |
-| GET `/api/v1/documents/:id` | Get document |
-| DELETE `/api/v1/documents/:id` | Delete document |
-| GET `/api/v1/documents/:id/chunks` | View chunks |
-| POST `/api/v1/documents/:id/ask` | Ask one-off question |
-| POST `/api/v1/documents/:id/sessions` | Create chat session |
-| GET `/api/v1/documents/:id/sessions` | List sessions |
-| POST `/api/v1/sessions/:sessionId/messages` | Ask follow-up question |
-| GET `/api/v1/sessions/:sessionId/messages` | Chat history |
-| GET `/api/v1/health` | Health check |
-
-Interactive API documentation is available at:
-
-```
-/api-docs
-```
-
----
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/v1/documents/upload` | Upload a PDF, runs the full ingestion pipeline |
+| `GET /api/v1/documents` | List all documents |
+| `GET /api/v1/documents/:id` | Document status/metadata |
+| `GET /api/v1/documents/:id/chunks` | Inspect extracted chunks |
+| `POST /api/v1/documents/:id/ask` | One-off question, no memory |
+| `POST /api/v1/documents/:id/sessions` | Start a chat session |
+| `GET /api/v1/documents/:id/sessions` | List chat sessions for a document |
+| `POST /api/v1/sessions/:sessionId/messages` | Ask with conversation memory |
+| `GET /api/v1/sessions/:sessionId/messages` | Full chat history |
+| `DELETE /api/v1/documents/:id` | Delete a document (cascades to chunks/vectors/chat) |
+| `GET /api/v1/health` | Liveness + Postgres/ChromaDB connectivity |
 
 ## Testing
 
-Run unit tests:
-
 ```bash
-npm test
+npm test              # run once
+npm run test:watch    # watch mode
+npm run test:coverage # with coverage report
 ```
 
-Generate coverage:
+**What's unit-tested (mocked I/O, fast, no external services needed):** orchestration logic — the upload pipeline's status transitions and failure handling, RAG's validation/guard logic (400/404/409 paths), conversation history mapping, the chunking algorithm, validation middleware, error utilities.
 
-```bash
-npm run test:coverage
-```
+**What's verified by manual end-to-end testing instead:** the actual Postgres/ChromaDB/Gemini integrations — these need real (or realistically mocked) external services to mean anything. They were exercised against a real local Postgres + ChromaDB instance, and a mock Gemini server matching the real API's request/response shape, throughout development. This is a deliberate split, not a coverage gap: a unit test asserting "the SQL string contains INSERT" proves nothing a human reviewer couldn't see by reading the query.
 
-Current test suite:
+## Known limitations / deliberate scope decisions
 
-- 24 unit tests
-- Chunking service
-- Document service
-- RAG orchestration
-- Validation middleware
-- Error utilities
+- **No authentication** — all documents belong to a single seeded demo user. Zod validation, rate limiting, and layered architecture are still fully in place.
+- **Fixed conversation history window** (last 10 messages) rather than summarization-based memory — the simplest thing that works.
+- **Single Chroma collection** for all documents, scoped by metadata filtering — simpler operationally than one collection per document.
+- **In-memory rate limiting** — resets on restart, doesn't share state across multiple instances. A Redis-backed store is the production upgrade path.
+- **Scanned/image-only PDFs are not supported** — no OCR step; the app fails clearly rather than silently returning an empty document.
 
----
+## Modules
 
-## Known Limitations
-
-- No authentication
-- No OCR for scanned PDFs
-- Fixed conversation history window
-- In-memory rate limiting
-- Single Chroma collection for all documents
-
----
-
+This backend was built in 8 incremental, independently-tested modules: project foundation, PostgreSQL integration, PDF upload & parsing, embeddings & ChromaDB, the RAG query pipeline, conversation memory, API hardening (validation/rate limiting/docs), and testing. Each module's design reasoning is documented in the source file headers under `src/`.
