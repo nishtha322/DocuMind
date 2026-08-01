@@ -1,4 +1,10 @@
 // src/app.js
+//
+// WHY app.js IS SEPARATE FROM server.js:
+// app.js builds and configures the Express application (middleware, routes,
+// error handlers) but does NOT start listening on a port. server.js does
+// that. Splitting them means we can import `app` directly in tests (e.g.
+// with supertest) later without actually binding to a network port.
 
 import express from 'express';
 import pinoHttp from 'pino-http';
@@ -8,19 +14,18 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
 
-// Parse JSON request bodies
+// Parse incoming JSON request bodies into req.body.
 app.use(express.json());
 
-// Log every incoming request
+
 app.use(pinoHttp({ logger }));
 
-// API routes (versioned)
 app.use('/api/v1', routes);
 
-// Handle unknown routes
+
 app.use(notFoundHandler);
 
-// Global error handler (keep this last)
+
 app.use(errorHandler);
 
 export default app;
