@@ -1,0 +1,14 @@
+# Editor
+.vscode/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# ChromaDB local data
+chroma_data/
+
+# OS files
+.DS_Store
+Thumbs.db
