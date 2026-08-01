@@ -1,28 +1,5 @@
 // src/ai/gemini-embeddings.service.js
-//
-// WHY @google/genai AND NOT @langchain/google-genai's embeddings wrapper:
-// LangChain's `GoogleGenerativeAIEmbeddings` is built on `@google/generative-ai`,
-// which Google has deprecated in favor of a single unified SDK, `@google/genai`.
-// Building new code on a deprecated SDK is a real interview red flag, so this
-// project calls Gemini directly through the current official SDK instead.
-// LangChain is still used elsewhere in this project (chunking — see
-// chunking.service.js — and the RAG chain in Module 5) where its abstractions
-// add genuine value; it's not used here simply to "use LangChain everywhere".
-// Knowing WHEN to reach for a framework vs. the underlying SDK is exactly the
-// kind of judgment call worth explaining in an interview.
-//
-// WHY OUR OWN CONCURRENCY-LIMITED BATCHING (not one giant call, not a naive
-// unlimited Promise.all):
-// - One call per chunk in an unbounded Promise.all could fire 100+
-//   simultaneous requests for a large PDF — a fast way to get rate-limited
-//   (HTTP 429) or overwhelm the API quota.
-// - A single call bundling ALL chunks avoids that, but current Gemini
-//   embedding models can be picky about how many inputs one request accepts,
-//   and one giant request means one failure loses everything.
-// - Instead: process chunks with a small, fixed concurrency (a simple pool)
-//   and retry transient failures (429/5xx) with exponential backoff. This is
-//   the standard resilient pattern for calling any external AI API at scale,
-//   and it's a great thing to be able to explain in an interview.
+
 
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
@@ -31,9 +8,7 @@ import { AppError } from '../utils/AppError.js';
 
 const ai = new GoogleGenAI({
   apiKey: config.gemini.apiKey,
-  // GEMINI_API_BASE_URL is intentionally undocumented in .env.example — it
-  // exists only so this service can be pointed at a local mock server
-  // during development/testing without touching real Gemini quota.
+  
   ...(process.env.GEMINI_API_BASE_URL
     ? { httpOptions: { baseUrl: process.env.GEMINI_API_BASE_URL } }
     : {}),
@@ -69,9 +44,7 @@ async function embedWithRetry(text, taskType) {
       return response.embeddings[0].values;
     } catch (err) {
       attempt += 1;
-      // Only retry on errors that are likely transient (rate limits, server
-      // errors). A malformed request (4xx other than 429) will just fail the
-      // same way again, so don't waste retries on it.
+     
       const status = err?.status ?? err?.code;
       const isRetryable = status === 429 || (status >= 500 && status < 600);
 

@@ -1,14 +1,5 @@
 // src/services/document.service.js
-//
-// WHY A SERVICE LAYER (even though it started out thin):
-// Controllers should NEVER call repositories directly. This file now
-// orchestrates the FULL RAG ingestion pipeline (file already saved by
-// multer -> DB record -> PDF text extraction -> chunking -> embeddings ->
-// vector storage) and the controller hasn't changed since Module 3. It
-// still just calls the service.
-//
-// This is the DEFAULT_USER_ID placeholder mentioned in the migration —
-// real auth (extracting the user from a JWT/session) is a future module.
+
 
 import * as documentRepository from '../repositories/document.repository.js';
 import * as chunkRepository from '../repositories/chunk.repository.js';
@@ -73,7 +64,8 @@ export async function uploadAndProcessDocument(file) {
 
     return documentRepository.updateDocumentStatus(document.id, 'ready');
   } catch (err) {
-   
+    // If anything in the pipeline fails, record WHY on the document row
+    // instead of leaving it stuck mid-pipeline with no explanation.
     const message = err instanceof AppError ? err.message : 'Failed to process document';
     await documentRepository.updateDocumentStatus(document.id, 'failed', { errorMessage: message });
     throw err;

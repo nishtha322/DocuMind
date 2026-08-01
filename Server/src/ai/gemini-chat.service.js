@@ -33,16 +33,30 @@ const ai = new GoogleGenAI({
 });
 
 /**
- * Sends a single-turn generation request to Gemini and returns the answer text.
+ * Sends a (possibly multi-turn) generation request to Gemini and returns
+ * the answer text.
+ *
+ * WHY `contents` IS AN ARRAY OF TURNS, NOT ONE STRING:
+ * Gemini's API natively supports multi-turn conversations via alternating
+ * {role: 'user'|'model', parts} entries in `contents`. Using this instead
+ * of manually concatenating "Human: ... AI: ... Human: ..." into one
+ * string is the officially supported way to give the model conversation
+ * history, and lets it distinguish turn boundaries reliably. See
+ * rag.service.js for how prior chat_messages rows get mapped into this
+ * shape.
+ *
+ * NOTE: Gemini 3.x rejects a request whose last turn has role 'model' —
+ * the final entry in `contents` must always be the current user turn.
+ *
  * @param {string} systemInstruction
- * @param {string} userPrompt
+ * @param {{ role: 'user'|'model', parts: { text: string }[] }[]} contents
  * @returns {Promise<string>}
  */
-export async function generateAnswer(systemInstruction, userPrompt) {
+export async function generateAnswer(systemInstruction, contents) {
   try {
     const response = await ai.models.generateContent({
       model: config.gemini.chatModel,
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      contents,
       config: {
         systemInstruction,
         thinkingConfig: {

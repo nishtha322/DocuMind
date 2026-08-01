@@ -26,7 +26,6 @@ app.use('/api/v1', routes);
 
 app.use(notFoundHandler);
 
-// Must be registered LAST — Express identifies this as an error handler
 
 app.use(errorHandler);
 

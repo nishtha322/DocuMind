@@ -1,10 +1,5 @@
 // src/controllers/document.controller.js
-//
-// NOTE: `createDocumentRecord` (JSON body, no real file) is the endpoint
-// from Module 2, kept as-is — it's a lightweight way to create a metadata-
-// only document record for testing. `uploadDocument` below is the REAL
-// production flow added in Module 3: real multipart/form-data upload,
-// PDF parsing, and chunking, all behind the same service-layer contract.
+
 
 import { catchAsync } from '../utils/catchAsync.js';
 import * as documentService from '../services/document.service.js';

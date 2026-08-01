@@ -1,3 +1,5 @@
+// src/repositories/chunk.repository.js
+
 
 import { pool } from '../config/db.js';
 
@@ -5,6 +7,7 @@ import { pool } from '../config/db.js';
 export async function insertChunks(documentId, chunkTexts) {
   if (chunkTexts.length === 0) return [];
 
+ 
   const values = [];
   const placeholders = chunkTexts.map((content, i) => {
     const base = i * 3;
@@ -31,7 +34,11 @@ export async function markChunksEmbedded(chunkIds) {
   );
 }
 
-
+/**
+ * Fetches all chunks for a document, in order.
+ * @param {string} documentId
+ * @returns {Promise<object[]>}
+ */
 export async function findChunksByDocumentId(documentId) {
   const { rows } = await pool.query(
     'SELECT * FROM document_chunks WHERE document_id = $1 ORDER BY chunk_index ASC;',

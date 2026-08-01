@@ -42,7 +42,11 @@ export async function findDocumentById(id) {
   return rows[0] || null;
 }
 
-
+/**
+ * Lists all documents belonging to a user, most recent first.
+ * @param {string} userId
+ * @returns {Promise<object[]>}
+ */
 export async function findDocumentsByUser(userId) {
   const { rows } = await pool.query(
     'SELECT * FROM documents WHERE user_id = $1 ORDER BY created_at DESC;',
@@ -51,7 +55,14 @@ export async function findDocumentsByUser(userId) {
   return rows;
 }
 
-
+/**
+ * Updates a document's processing status (and optionally an error message
+ * or page count once known from parsing).
+ * @param {string} id
+ * @param {string} status - one of 'uploaded' | 'parsing' | 'embedding' | 'ready' | 'failed'
+ * @param {{ errorMessage?: string|null, pageCount?: number|null }} [extra]
+ * @returns {Promise<object|null>}
+ */
 export async function updateDocumentStatus(id, status, extra = {}) {
   const { errorMessage = null, pageCount = null } = extra;
   const query = `
@@ -67,7 +78,12 @@ export async function updateDocumentStatus(id, status, extra = {}) {
   return rows[0] || null;
 }
 
-
+/**
+ * Deletes a document. Related chunks/chat_sessions cascade-delete via
+ * the ON DELETE CASCADE foreign keys defined in the schema.
+ * @param {string} id
+ * @returns {Promise<boolean>} whether a row was deleted
+ */
 export async function deleteDocument(id) {
   const { rowCount } = await pool.query('DELETE FROM documents WHERE id = $1;', [id]);
   return rowCount > 0;
