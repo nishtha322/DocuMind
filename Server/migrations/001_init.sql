@@ -1,6 +1,4 @@
 -- migrations/001_init.sql
-
--- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -14,7 +12,7 @@ CREATE TABLE IF NOT EXISTS documents (
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     original_filename VARCHAR(512) NOT NULL,
     storage_path VARCHAR(1024) NOT NULL,
-    -- Tracks document processing lifecycle
+
     status VARCHAR(20) NOT NULL DEFAULT 'uploaded'
         CHECK (status IN ('uploaded', 'parsing', 'embedding', 'ready', 'failed')),
     page_count INTEGER,
@@ -29,7 +27,8 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER,
-    -- Reference to the corresponding embedding stored in ChromaDB
+    -- Foreign "key" into ChromaDB (a different database entirely, so this
+    -- is just a string reference, not a real FK constraint).
     chroma_vector_id VARCHAR(255),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (document_id, chunk_index)
@@ -50,13 +49,15 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Indexes for frequently queried foreign keys
+-- Indexes on foreign keys used in frequent lookups (Postgres does NOT
+-- auto-index foreign key columns, unlike primary keys).
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_document_id ON chat_sessions(document_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
 
--- Seed a demo user until authentication is implemented
+-- Seed a default demo user so documents have something to reference
+-- until a real auth module is built.
 INSERT INTO users (id, email)
 VALUES ('00000000-0000-0000-0000-000000000001', 'demo@ai-document-assistant.local')
 ON CONFLICT (email) DO NOTHING;

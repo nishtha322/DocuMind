@@ -1,9 +1,11 @@
 // src/controllers/health.controller.js
+
+
 import { catchAsync } from '../utils/catchAsync.js';
 import { testConnection } from '../config/db.js';
 
 export const getHealth = catchAsync(async (req, res) => {
-
+ 
   let dbStatus = 'ok';
   try {
     await testConnection();

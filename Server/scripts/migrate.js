@@ -1,5 +1,6 @@
 // scripts/migrate.js
 
+
 import { readdir, readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -19,8 +20,7 @@ async function runMigrations() {
   try {
     const files = (await readdir(migrationsDir))
       .filter((f) => f.endsWith('.sql'))
-      // Run migrations in filename order (001_, 002_, ...)
-      .sort();
+      .sort(); // filenames are prefixed 001_, 002_... so alphabetical = chronological
 
     for (const file of files) {
       const sql = await readFile(path.join(migrationsDir, file), 'utf-8');
@@ -35,6 +35,6 @@ async function runMigrations() {
 }
 
 runMigrations().catch((err) => {
-  logger.error({ err }, 'Migration failed');
+  logger.error({ err }, '❌ Migration failed');
   process.exit(1);
 });
