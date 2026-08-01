@@ -1,0 +1,21 @@
+{
+  "name": "ai-document-assistant",
+  "version": "1.0.0",
+  "description": "Backend-first RAG application to upload PDFs and ask questions about them using Gemini, LangChain, and ChromaDB.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pino": "^9.3.2",
+    "pino-http": "^10.2.0",
+    "pino-pretty": "^11.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
