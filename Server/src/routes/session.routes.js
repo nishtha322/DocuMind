@@ -1,5 +1,4 @@
-// src/routes/session.routes.js
-
+// File: src/routes/session.routes.js
 
 import { Router } from 'express';
 import { getSessionMessages, askInSession } from '../controllers/chat.controller.js';
@@ -9,9 +8,13 @@ import { sessionIdParamSchema, askInSessionBodySchema } from '../validators/chat
 
 const router = Router();
 
-router.get('/:sessionId/messages', validate(sessionIdParamSchema, 'params'), getSessionMessages);
+router.get(
+  '/:sessionId/messages',
+  validate(sessionIdParamSchema, 'params'),
+  getSessionMessages
+);
 
-
+// Continue a chat session
 router.post(
   '/:sessionId/messages',
   aiLimiter,

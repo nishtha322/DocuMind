@@ -1,12 +1,12 @@
-// src/repositories/document.repository.js
-
+// File: src/repositories/document.repository.js
 
 import { pool } from '../config/db.js';
 
 /**
- * Inserts a new document row.
+ * Create a new document.
+ *
  * @param {{ userId: string, originalFilename: string, storagePath: string }} data
- * @returns {Promise<object>} the created document row
+ * @returns {Promise<object>}
  */
 export async function createDocument({ userId, originalFilename, storagePath }) {
   const query = `
@@ -14,22 +14,34 @@ export async function createDocument({ userId, originalFilename, storagePath }) 
     VALUES ($1, $2, $3)
     RETURNING *;
   `;
-  const { rows } = await pool.query(query, [userId, originalFilename, storagePath]);
+
+  const { rows } = await pool.query(query, [
+    userId,
+    originalFilename,
+    storagePath,
+  ]);
+
   return rows[0];
 }
 
 /**
- * Fetches a single document by its id.
+ * Get a document by ID.
+ *
  * @param {string} id
  * @returns {Promise<object|null>}
  */
 export async function findDocumentById(id) {
-  const { rows } = await pool.query('SELECT * FROM documents WHERE id = $1;', [id]);
+  const { rows } = await pool.query(
+    'SELECT * FROM documents WHERE id = $1;',
+    [id]
+  );
+
   return rows[0] || null;
 }
 
 /**
- * Lists all documents belonging to a user, most recent first.
+ * Get all documents for a user.
+ *
  * @param {string} userId
  * @returns {Promise<object[]>}
  */
@@ -38,11 +50,21 @@ export async function findDocumentsByUser(userId) {
     'SELECT * FROM documents WHERE user_id = $1 ORDER BY created_at DESC;',
     [userId]
   );
+
   return rows;
 }
 
+/**
+ * Update a document's status.
+ *
+ * @param {string} id
+ * @param {string} status
+ * @param {{ errorMessage?: string|null, pageCount?: number|null }} [extra]
+ * @returns {Promise<object|null>}
+ */
 export async function updateDocumentStatus(id, status, extra = {}) {
   const { errorMessage = null, pageCount = null } = extra;
+
   const query = `
     UPDATE documents
     SET status = $2,
@@ -52,12 +74,28 @@ export async function updateDocumentStatus(id, status, extra = {}) {
     WHERE id = $1
     RETURNING *;
   `;
-  const { rows } = await pool.query(query, [id, status, errorMessage, pageCount]);
+
+  const { rows } = await pool.query(query, [
+    id,
+    status,
+    errorMessage,
+    pageCount,
+  ]);
+
   return rows[0] || null;
 }
 
-
+/**
+ * Delete a document.
+ *
+ * @param {string} id
+ * @returns {Promise<boolean>}
+ */
 export async function deleteDocument(id) {
-  const { rowCount } = await pool.query('DELETE FROM documents WHERE id = $1;', [id]);
+  const { rowCount } = await pool.query(
+    'DELETE FROM documents WHERE id = $1;',
+    [id]
+  );
+
   return rowCount > 0;
 }

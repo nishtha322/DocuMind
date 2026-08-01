@@ -1,17 +1,19 @@
-// src/middleware/rateLimit.middleware.js
-
+// File: src/middleware/rateLimit.middleware.js
 
 import rateLimit from 'express-rate-limit';
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
-  standardHeaders: true, // return RateLimit-* headers
+  standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests. Please try again later.' },
+  message: {
+    success: false,
+    message: 'Too many requests. Please try again later.',
+  },
 });
 
-
+// Limit AI-related endpoints
 export const aiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 10,

@@ -1,10 +1,10 @@
-// src/repositories/chat.repository.js
-
+// File: src/repositories/chat.repository.js
 
 import { pool } from '../config/db.js';
 
 /**
- * Creates a new chat session scoped to a document.
+ * Create a new chat session.
+ *
  * @param {string} documentId
  * @param {string|null} title
  * @returns {Promise<object>}
@@ -14,6 +14,7 @@ export async function createSession(documentId, title = null) {
     `INSERT INTO chat_sessions (document_id, title) VALUES ($1, $2) RETURNING *;`,
     [documentId, title]
   );
+
   return rows[0];
 }
 
@@ -22,7 +23,11 @@ export async function createSession(documentId, title = null) {
  * @returns {Promise<object|null>}
  */
 export async function findSessionById(sessionId) {
-  const { rows } = await pool.query('SELECT * FROM chat_sessions WHERE id = $1;', [sessionId]);
+  const { rows } = await pool.query(
+    'SELECT * FROM chat_sessions WHERE id = $1;',
+    [sessionId]
+  );
+
   return rows[0] || null;
 }
 
@@ -35,11 +40,13 @@ export async function findSessionsByDocument(documentId) {
     'SELECT * FROM chat_sessions WHERE document_id = $1 ORDER BY created_at DESC;',
     [documentId]
   );
+
   return rows;
 }
 
 /**
- * Appends a message to a session.
+ * Save a chat message.
+ *
  * @param {string} sessionId
  * @param {'user'|'assistant'} role
  * @param {string} content
@@ -50,17 +57,25 @@ export async function createMessage(sessionId, role, content) {
     `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, $2, $3) RETURNING *;`,
     [sessionId, role, content]
   );
+
   return rows[0];
 }
 
-
+/**
+ * Get recent messages for a session.
+ *
+ * @param {string} sessionId
+ * @param {number} limit
+ * @returns {Promise<object[]>}
+ */
 export async function findMessagesBySession(sessionId, limit = 100) {
-
+  // Return messages in chronological order
   const { rows } = await pool.query(
     `SELECT * FROM (
        SELECT * FROM chat_messages WHERE session_id = $1 ORDER BY created_at DESC LIMIT $2
      ) recent ORDER BY created_at ASC;`,
     [sessionId, limit]
   );
+
   return rows;
 }

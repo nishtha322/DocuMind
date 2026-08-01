@@ -1,5 +1,4 @@
-// src/validators/document.validators.js
-
+// File: src/validators/document.validators.js
 
 import { z } from 'zod';
 
@@ -13,9 +12,14 @@ export const createDocumentBodySchema = z.object({
 });
 
 export const askQuestionBodySchema = z.object({
-  question: z.string().trim().min(1, 'is required').max(2000, 'must be under 2000 characters'),
+  question: z
+    .string()
+    .trim()
+    .min(1, 'is required')
+    .max(2000, 'must be under 2000 characters'),
 });
 
+// Optional title for a chat session
 export const createSessionBodySchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
 });

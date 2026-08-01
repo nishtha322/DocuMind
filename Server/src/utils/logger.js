@@ -1,5 +1,4 @@
-// src/utils/logger.js
-
+// File: src/utils/logger.js
 
 import pino from 'pino';
 import { config } from '../config/env.js';
@@ -7,6 +6,7 @@ import { config } from '../config/env.js';
 export const logger = pino({
   level: config.isProduction ? 'info' : 'debug',
 
+  // Pretty-print logs in development
   transport: config.isProduction
     ? undefined
     : {

@@ -1,5 +1,4 @@
-// src/config/db.js
-
+// File: src/config/db.js
 
 import pkg from 'pg';
 import { config } from './env.js';
@@ -10,24 +9,27 @@ const { Pool } = pkg;
 export const pool = new Pool({
   connectionString: config.databaseUrl,
 
-  max: 10, // max simultaneous connections in the pool
-  idleTimeoutMillis: 30000, // close idle connections after 30s
-  connectionTimeoutMillis: 5000, // fail fast if we can't get a connection
+  // Connection pool settings
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 pool.on('error', (err) => {
-
   logger.error({ err }, 'Unexpected error on idle PostgreSQL client');
 });
 
-
- 
+/**
+ * Check if the database is reachable.
+ */
 export async function testConnection() {
   const client = await pool.connect();
+
   try {
     await client.query('SELECT 1');
     return true;
   } finally {
-    client.release(); 
+    // Return the connection to the pool
+    client.release();
   }
 }

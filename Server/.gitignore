@@ -4,6 +4,17 @@ node_modules/
 .DS_Store
 dist/
 coverage/
-uploads/
+
+# Runtime uploads
+uploads/*
+!uploads/.gitkeep
+
+# Local ChromaDB data
+chroma_data/
+
+# Local environments
 venv/
+.venv/
+
+# VS Code
 .vscode/

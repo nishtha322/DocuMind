@@ -1,30 +1,35 @@
-// src/vector-store/chroma.service.js
-
+// File: src/vector-store/chroma.service.js
 
 import { getCollection } from '../config/chroma.js';
 
-
+/**
+ * Store chunk embeddings in Chroma.
+ *
+ * @param {string} documentId
+ * @param {{ id: string, content: string, chunkIndex: number }[]} chunks
+ * @param {number[][]} embeddings
+ */
 export async function storeChunkEmbeddings(documentId, chunks, embeddings) {
   const collection = await getCollection();
 
   await collection.add({
-
+    // Use chunk UUIDs as vector IDs
     ids: chunks.map((chunk) => chunk.id),
     embeddings,
     documents: chunks.map((chunk) => chunk.content),
     metadatas: chunks.map((chunk) => ({
       documentId,
-      
       chunkIndex: chunk.chunk_index,
     })),
   });
 }
 
 /**
- * Finds the most similar chunks to a query embedding, scoped to one document.
+ * Find similar chunks for a query.
+ *
  * @param {string} documentId
  * @param {number[]} queryEmbedding
- * @param {number} topK - how many chunks to retrieve
+ * @param {number} topK
  * @returns {Promise<{ id: string, content: string, chunkIndex: number, distance: number }[]>}
  */
 export async function findSimilarChunks(documentId, queryEmbedding, topK = 5) {
@@ -36,8 +41,7 @@ export async function findSimilarChunks(documentId, queryEmbedding, topK = 5) {
     where: { documentId },
   });
 
-  // Chroma returns parallel arrays wrapped in an outer array (one per query
-  // embedding — we only ever send one). Zip them into a friendlier shape.
+  // Convert the response into a simpler format
   const ids = result.ids[0] ?? [];
   const documents = result.documents[0] ?? [];
   const distances = result.distances[0] ?? [];
@@ -52,11 +56,14 @@ export async function findSimilarChunks(documentId, queryEmbedding, topK = 5) {
 }
 
 /**
- * Deletes all vectors for a document (called when a document is deleted,
- * so Chroma doesn't accumulate orphaned vectors).
+ * Delete all vectors for a document.
+ *
  * @param {string} documentId
  */
 export async function deleteDocumentVectors(documentId) {
   const collection = await getCollection();
-  await collection.delete({ where: { documentId } });
+
+  await collection.delete({
+    where: { documentId },
+  });
 }

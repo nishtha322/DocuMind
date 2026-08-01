@@ -1,5 +1,7 @@
--- migrations/001_init.sql
+--migrations/001_init.sql
 
+
+-- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -14,8 +16,10 @@ CREATE TABLE IF NOT EXISTS documents (
     original_filename VARCHAR(512) NOT NULL,
     storage_path VARCHAR(1024) NOT NULL,
 
+    -- Document processing status
     status VARCHAR(20) NOT NULL DEFAULT 'uploaded'
         CHECK (status IN ('uploaded', 'parsing', 'embedding', 'ready', 'failed')),
+
     page_count INTEGER,
     error_message TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -28,8 +32,10 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER,
- 
+
+    -- Matching vector ID in ChromaDB
     chroma_vector_id VARCHAR(255),
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (document_id, chunk_index)
 );
@@ -49,12 +55,13 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Indexes for common lookups
 CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_document_id ON chat_sessions(document_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
 
-
+-- Demo user
 INSERT INTO users (id, email)
 VALUES ('00000000-0000-0000-0000-000000000001', 'demo@ai-document-assistant.local')
 ON CONFLICT (email) DO NOTHING;
