@@ -1,4 +1,4 @@
-// src/components/ui/Spinner.jsx
+// File: src/components/ui/Spinner.jsx
 
 export function Spinner({ size = 16, className = '' }) {
   return (

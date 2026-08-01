@@ -1,14 +1,13 @@
-// src/api/client.js
-
+// File: src/api/client.js
 
 import axios from 'axios';
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000, 
+  timeout: 30000, // Allow enough time for uploads and processing
 });
 
-
+// Return a consistent error message
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -16,6 +15,7 @@ apiClient.interceptors.response.use(
       error.response?.data?.message ||
       error.message ||
       'Something went wrong. Please try again.';
+
     return Promise.reject(new Error(message));
   }
 );

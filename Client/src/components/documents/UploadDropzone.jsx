@@ -1,4 +1,4 @@
-// src/components/documents/UploadDropzone.jsx
+// File: src/components/documents/UploadDropzone.jsx
 
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
@@ -10,7 +10,9 @@ export function UploadDropzone({ onUpload, isUploading, compact = false }) {
 
   function handleFiles(files) {
     const file = files?.[0];
-    if (file) onUpload(file);
+    if (file) {
+      onUpload(file);
+    }
   }
 
   const baseClasses = compact
@@ -22,7 +24,9 @@ export function UploadDropzone({ onUpload, isUploading, compact = false }) {
       role="button"
       tabIndex={0}
       onClick={() => inputRef.current?.click()}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+      onKeyDown={(e) =>
+        (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()
+      }
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragActive(true);
@@ -33,8 +37,10 @@ export function UploadDropzone({ onUpload, isUploading, compact = false }) {
         setIsDragActive(false);
         handleFiles(e.dataTransfer.files);
       }}
-      className={`${baseClasses} cursor-pointer transition-colors ${
-        isDragActive ? 'border-accent bg-accent-soft' : 'border-border hover:border-accent'
+      className={`${baseClasses} cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-accent-soft ${
+        isDragActive
+          ? 'scale-[1.01] border-accent bg-accent-soft'
+          : 'border-border hover:border-accent'
       } ${isUploading ? 'pointer-events-none opacity-60' : ''}`}
     >
       <input
@@ -44,17 +50,23 @@ export function UploadDropzone({ onUpload, isUploading, compact = false }) {
         hidden
         onChange={(e) => handleFiles(e.target.files)}
       />
+
       {isUploading ? (
         <Spinner size={compact ? 16 : 24} />
       ) : (
         <Upload size={compact ? 16 : 28} className="text-accent" />
       )}
+
       {compact ? (
-        <span className="text-ink-muted">{isUploading ? 'Uploading…' : 'Upload PDF'}</span>
+        <span className="text-ink-muted">
+          {isUploading ? 'Uploading…' : 'Upload PDF'}
+        </span>
       ) : (
         <>
           <p className="font-medium text-ink">
-            {isUploading ? 'Uploading…' : 'Drop a PDF here, or click to browse'}
+            {isUploading
+              ? 'Uploading…'
+              : 'Drop a PDF here, or click to browse'}
           </p>
           <p className="text-sm text-ink-muted">PDF only · up to 20MB</p>
         </>

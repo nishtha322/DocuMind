@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
@@ -20,10 +19,50 @@
   --color-warning-soft: #fffbeb;
   --color-danger: #b91c1c;
   --color-danger-soft: #fef2f2;
+
+  /* Custom animations used throughout the UI */
+  --animate-message-in: message-in 0.2s ease-out;
+  --animate-fade-in: fade-in 0.15s ease-out;
+
+  @keyframes message-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 body {
   font-family: var(--font-sans);
   background: var(--color-canvas);
   color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Minimal custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 8px;
 }

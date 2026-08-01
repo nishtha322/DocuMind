@@ -1,8 +1,12 @@
-// src/hooks/useChatSession.js
-
+// File: src/hooks/useChatSession.js
 
 import { useCallback, useEffect, useState } from 'react';
-import { createSession, listSessions, getSessionMessages, askInSession } from '../api/chat';
+import {
+  createSession,
+  listSessions,
+  getSessionMessages,
+  askInSession,
+} from '../api/chat';
 
 export function useChatSession(documentId) {
   const [sessionId, setSessionId] = useState(null);
@@ -11,7 +15,7 @@ export function useChatSession(documentId) {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(null);
 
-
+  // Load the latest chat session
   useEffect(() => {
     let cancelled = false;
 
@@ -20,25 +24,34 @@ export function useChatSession(documentId) {
       setError(null);
       setSessionId(null);
       setMessages([]);
+
       try {
         const sessions = await listSessions(documentId);
+
         if (cancelled) return;
 
         if (sessions.length > 0) {
-          const mostRecent = sessions[0]; // backend returns most-recent-first
+          const mostRecent = sessions[0];
           const history = await getSessionMessages(mostRecent.id);
+
           if (cancelled) return;
+
           setSessionId(mostRecent.id);
           setMessages(history.map(toDisplayMessage));
         }
       } catch (err) {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+        }
       } finally {
-        if (!cancelled) setIsLoadingHistory(false);
+        if (!cancelled) {
+          setIsLoadingHistory(false);
+        }
       }
     }
 
     restore();
+
     return () => {
       cancelled = true;
     };
@@ -53,19 +66,30 @@ export function useChatSession(documentId) {
   const ask = useCallback(
     async (question) => {
       setError(null);
+
+      // Show the user's message immediately
       setMessages((prev) => [...prev, { role: 'user', content: question }]);
       setIsSending(true);
+
       try {
         let currentSessionId = sessionId;
+
+        // Create a session if one doesn't exist
         if (!currentSessionId) {
           const session = await createSession(documentId);
           currentSessionId = session.id;
           setSessionId(currentSessionId);
         }
+
         const result = await askInSession(currentSessionId, question);
+
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: result.answer, sources: result.sources },
+          {
+            role: 'assistant',
+            content: result.answer,
+            sources: result.sources,
+          },
         ]);
       } catch (err) {
         setError(err.message);
@@ -76,10 +100,19 @@ export function useChatSession(documentId) {
     [documentId, sessionId]
   );
 
-  return { messages, isLoadingHistory, isSending, error, ask, startNewConversation };
+  return {
+    messages,
+    isLoadingHistory,
+    isSending,
+    error,
+    ask,
+    startNewConversation,
+  };
 }
 
 function toDisplayMessage(msg) {
-
-  return { role: msg.role, content: msg.content };
+  return {
+    role: msg.role,
+    content: msg.content,
+  };
 }

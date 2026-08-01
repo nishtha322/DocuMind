@@ -1,5 +1,4 @@
-// src/hooks/useDocumentStatus.js
-
+// File: src/hooks/useDocumentStatus.js
 
 import { useEffect, useRef, useState } from 'react';
 import { getDocument } from '../api/documents';
@@ -9,12 +8,13 @@ const TERMINAL_STATUSES = ['ready', 'failed'];
 
 /**
  * @param {string} documentId
- * @param {object} initialDoc - document object already known (e.g. from the list)
- * @param {(doc: object) => void} [onUpdate] - called whenever a fresher doc is fetched
+ * @param {object} initialDoc
+ * @param {(doc: object) => void} [onUpdate]
  */
 export function useDocumentStatus(documentId, initialDoc, onUpdate) {
   const [document, setDocument] = useState(initialDoc || null);
   const [error, setError] = useState(null);
+
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
 
@@ -25,15 +25,20 @@ export function useDocumentStatus(documentId, initialDoc, onUpdate) {
     async function poll() {
       try {
         const doc = await getDocument(documentId);
+
         if (cancelled) return;
+
         setDocument(doc);
         onUpdateRef.current?.(doc);
 
+        // Keep polling until processing is complete
         if (!TERMINAL_STATUSES.includes(doc.status)) {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (err) {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+        }
       }
     }
 
@@ -45,5 +50,8 @@ export function useDocumentStatus(documentId, initialDoc, onUpdate) {
     };
   }, [documentId]);
 
-  return { document, error };
+  return {
+    document,
+    error,
+  };
 }

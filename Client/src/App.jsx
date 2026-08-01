@@ -1,6 +1,5 @@
 // src/App.jsx
 
-
 import { Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
 import { UploadPage } from './pages/UploadPage';

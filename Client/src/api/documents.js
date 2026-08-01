@@ -1,58 +1,82 @@
-// src/api/documents.js
-//
-// Every function here maps 1:1 to a real backend endpoint (see the
-// project's openapi.yaml — nothing here is invented). The backend wraps
-// successful responses as { success: true, data: ... }; these functions
-// unwrap that so callers just get the data itself.
+// File: src/api/documents.js
 
 import { apiClient } from './client';
 
 /**
- * POST /documents/upload — uploads a PDF and starts the ingestion pipeline.
+ * Upload a PDF document.
+ *
  * @param {File} file
- * @returns {Promise<object>} the created document (status: 'uploaded')
+ * @returns {Promise<object>}
  */
 export async function uploadDocument(file) {
   const formData = new FormData();
   formData.append('file', file);
+
   const response = await apiClient.post('/documents/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
   });
+
   return response.data.data;
 }
 
 /**
- * GET /documents — lists all documents.
+ * Get all documents.
+ *
  * @returns {Promise<object[]>}
  */
 export async function listDocuments() {
   const response = await apiClient.get('/documents');
+
   return response.data.data;
 }
 
 /**
- * GET /documents/:id — fetches one document (includes current status).
+ * Get a document by ID.
+ *
  * @param {string} id
  * @returns {Promise<object>}
  */
 export async function getDocument(id) {
   const response = await apiClient.get(`/documents/${id}`);
+
   return response.data.data;
 }
 
-
+/**
+ * Get document chunks.
+ *
+ * @param {string} id
+ * @returns {Promise<object[]>}
+ */
 export async function getDocumentChunks(id) {
   const response = await apiClient.get(`/documents/${id}/chunks`);
+
   return response.data.data;
 }
 
-
+/**
+ * Delete a document.
+ *
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
 export async function deleteDocument(id) {
   await apiClient.delete(`/documents/${id}`);
 }
 
-
+/**
+ * Ask a question about a document.
+ *
+ * @param {string} id
+ * @param {string} question
+ * @returns {Promise<{ answer: string, sources: object[] }>}
+ */
 export async function askDocument(id, question) {
-  const response = await apiClient.post(`/documents/${id}/ask`, { question });
+  const response = await apiClient.post(`/documents/${id}/ask`, {
+    question,
+  });
+
   return response.data.data;
 }
