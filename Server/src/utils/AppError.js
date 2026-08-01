@@ -7,7 +7,7 @@ export class AppError extends Error {
     this.statusCode = statusCode;
     this.isOperational = true; // marks this as an "expected" error
 
-    // Keeps the stack trace clean (excludes this constructor call itself)
+    // Keeps the stack trace clean 
     Error.captureStackTrace(this, this.constructor);
   }
 }

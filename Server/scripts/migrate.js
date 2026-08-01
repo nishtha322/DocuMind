@@ -1,5 +1,12 @@
 // scripts/migrate.js
-
+//
+// WHY A CUSTOM MIGRATION RUNNER INSTEAD OF A LIBRARY:
+// This project's schema needs are simple enough that a ~30 line script
+// is more transparent than pulling in node-pg-migrate. It reads every
+// .sql file in /migrations in filename order and runs it. For a bigger
+// team project you'd want tracked/versioned migrations (a schema_migrations
+// table recording what's already been applied) — noted here as a known
+// simplification, not an oversight.
 
 import { readdir, readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -28,7 +35,7 @@ async function runMigrations() {
       await client.query(sql);
     }
 
-    logger.info('All migrations applied successfully');
+    logger.info('✅ All migrations applied successfully');
   } finally {
     await client.end();
   }

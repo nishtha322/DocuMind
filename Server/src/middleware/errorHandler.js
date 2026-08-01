@@ -19,12 +19,13 @@ export function errorHandler(err, req, res, next) {
   res.status(statusCode).json({
     success: false,
     message: isOperational ? err.message : 'Internal Server Error',
-
+  
     ...(config.isProduction ? {} : { stack: err.stack }),
   });
 }
 
-
+// Catches requests to routes that don't exist (404).
+// Registered right before errorHandler, after all real routes.
 export function notFoundHandler(req, res, next) {
   res.status(404).json({
     success: false,

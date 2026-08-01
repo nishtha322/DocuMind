@@ -1,5 +1,6 @@
 // src/middleware/upload.middleware.js
 
+
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
-  
+
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${uniqueSuffix}.pdf`);
   },
@@ -37,11 +38,16 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 20 * 1024 * 1024, 
+    fileSize: 20 * 1024 * 1024, // 20MB — generous for text-based PDFs, prevents abuse
   },
 });
 
-
+// WHY THIS WRAPPER:
+// Multer's own errors (e.g. file too large) surface as `multer.MulterError`,
+// not our `AppError`, so our global error handler would treat them as
+// unexpected 500-level bugs and hide the real message from the client.
+// This thin wrapper normalizes multer errors into AppError so the client
+// gets a clean, correct 400 with a useful message either way.
 export function uploadPdf(req, res, next) {
   upload.single('file')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
