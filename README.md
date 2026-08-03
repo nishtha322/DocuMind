@@ -181,15 +181,29 @@ Client/README.md
 
 # Screenshots
 
-> Add screenshots here.
+## Home
 
-Suggested screenshots:
+![Home](screenshots/home.png)
 
-- Upload page
-- Chat interface
-- Source citations
-- Swagger API
-- Architecture diagram
+## Upload Document
+
+![Upload](screenshots/upload.png)
+
+## AI Chat with Source Citations
+
+![Chat](screenshots/chat.png)
+
+## Delete Document
+
+![Delete](screenshots/delete.png)
+
+## Interactive API Documentation
+
+![Swagger](screenshots/swagger.png)
+
+## Backend Health Check
+
+![Health](screenshots/health.png)
 
 ---
 
