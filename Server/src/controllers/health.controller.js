@@ -17,7 +17,7 @@ export const getHealth = catchAsync(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: 'AI Document Assistant API is running',
+    message: 'DocuMind API is running',
     timestamp: new Date().toISOString(),
     dependencies: {
       database: dbStatus,
