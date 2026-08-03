@@ -27,7 +27,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:5173',
-      'https://documind-production-7d04.up.railway.app',
+      'https://documind-production-1664.up.railway.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
