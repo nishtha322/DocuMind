@@ -6,6 +6,9 @@ export const apiClient = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') + '/api/v1',
   timeout: 30000,
+
+  // Send HttpOnly cookies with every request
+  withCredentials: true,
 });
 
 // Return a consistent error message
