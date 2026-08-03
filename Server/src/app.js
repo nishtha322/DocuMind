@@ -2,6 +2,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 import { readFileSync } from 'fs';
@@ -35,6 +36,9 @@ app.use(
 
 // Parse JSON request bodies
 app.use(express.json());
+
+// Parse cookies (used to identify anonymous users)
+app.use(cookieParser());
 
 // Log incoming requests
 app.use(pinoHttp({ logger }));

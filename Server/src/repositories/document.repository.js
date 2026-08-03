@@ -89,12 +89,13 @@ export async function updateDocumentStatus(id, status, extra = {}) {
  * Delete a document.
  *
  * @param {string} id
+ * @param {string} userId
  * @returns {Promise<boolean>}
  */
-export async function deleteDocument(id) {
+export async function deleteDocument(id, userId) {
   const { rowCount } = await pool.query(
-    'DELETE FROM documents WHERE id = $1;',
-    [id]
+    'DELETE FROM documents WHERE id = $1 AND user_id = $2;',
+    [id, userId]
   );
 
   return rowCount > 0;

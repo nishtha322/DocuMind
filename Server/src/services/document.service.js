@@ -9,15 +9,13 @@ import { storeChunkEmbeddings, deleteDocumentVectors } from '../vector-store/chr
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 
-const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
-
-export async function createDocument({ originalFilename, storagePath }) {
+export async function createDocument({ originalFilename, storagePath }, userId) {
   if (!originalFilename || !storagePath) {
     throw new AppError('originalFilename and storagePath are required', 400);
   }
 
   return documentRepository.createDocument({
-    userId: DEFAULT_USER_ID,
+    userId,
     originalFilename,
     storagePath,
   });
@@ -27,11 +25,12 @@ export async function createDocument({ originalFilename, storagePath }) {
  * Upload and process a document.
  *
  * @param {{ originalname: string, path: string }} file
+ * @param {string} userId
  * @returns {Promise<object>}
  */
-export async function uploadAndProcessDocument(file) {
+export async function uploadAndProcessDocument(file, userId) {
   const document = await documentRepository.createDocument({
-    userId: DEFAULT_USER_ID,
+    userId,
     originalFilename: file.originalname,
     storagePath: file.path,
   });
@@ -79,25 +78,28 @@ export async function uploadAndProcessDocument(file) {
   }
 }
 
-export async function getDocumentById(id) {
+export async function getDocumentById(id, userId) {
   const document = await documentRepository.findDocumentById(id);
 
-  if (!document) {
+  if (!document || (userId && document.user_id !== userId)) {
     throw new AppError(`Document not found: ${id}`, 404);
   }
 
   return document;
 }
 
-export async function listDocuments() {
-  return documentRepository.findDocumentsByUser(DEFAULT_USER_ID);
+export async function listDocuments(userId) {
+  return documentRepository.findDocumentsByUser(userId);
 }
 
-export async function removeDocument(id) {
+export async function removeDocument(id, userId) {
+  // Ensure the document exists and belongs to this user
+  await getDocumentById(id, userId);
+
   // Remove vectors before deleting the document
   await deleteDocumentVectors(id);
 
-  const deleted = await documentRepository.deleteDocument(id);
+  const deleted = await documentRepository.deleteDocument(id, userId);
 
   if (!deleted) {
     throw new AppError(`Document not found: ${id}`, 404);

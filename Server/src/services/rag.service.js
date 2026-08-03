@@ -16,12 +16,13 @@ const MAX_HISTORY_MESSAGES = 10;
  *
  * @param {string} documentId
  * @param {string} question
+ * @param {string} userId
  * @returns {Promise<{ answer: string, sources: { chunkIndex: number, distance: number }[] }>}
  */
-export async function answerQuestion(documentId, question) {
+export async function answerQuestion(documentId, question, userId) {
   validateQuestion(question);
 
-  const document = await getDocumentById(documentId);
+  const document = await getDocumentById(documentId, userId);
   assertDocumentReady(document);
 
   const chunks = await retrieveRelevantChunks(documentId, question);
@@ -50,13 +51,14 @@ export async function answerQuestion(documentId, question) {
  *
  * @param {string} sessionId
  * @param {string} question
+ * @param {string} userId
  * @returns {Promise<{ answer: string, sources: object[], sessionId: string }>}
  */
-export async function answerQuestionInSession(sessionId, question) {
+export async function answerQuestionInSession(sessionId, question, userId) {
   validateQuestion(question);
 
-  const session = await getSessionOrThrow(sessionId);
-  const document = await getDocumentById(session.document_id);
+  const session = await getSessionOrThrow(sessionId, userId);
+  const document = await getDocumentById(session.document_id, userId);
 
   assertDocumentReady(document);
 

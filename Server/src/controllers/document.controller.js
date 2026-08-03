@@ -5,7 +5,10 @@ import * as documentService from '../services/document.service.js';
 import * as chunkRepository from '../repositories/chunk.repository.js';
 
 export const uploadDocument = catchAsync(async (req, res) => {
-  const document = await documentService.uploadAndProcessDocument(req.file);
+  const document = await documentService.uploadAndProcessDocument(
+    req.file,
+    req.userId
+  );
 
   res.status(201).json({
     success: true,
@@ -14,8 +17,8 @@ export const uploadDocument = catchAsync(async (req, res) => {
 });
 
 export const getDocumentChunks = catchAsync(async (req, res) => {
-  // Ensure the document exists
-  await documentService.getDocumentById(req.params.id);
+  // Ensure the document exists and belongs to this user
+  await documentService.getDocumentById(req.params.id, req.userId);
 
   const chunks = await chunkRepository.findChunksByDocumentId(req.params.id);
 
@@ -27,10 +30,13 @@ export const getDocumentChunks = catchAsync(async (req, res) => {
 
 export const createDocumentRecord = catchAsync(async (req, res) => {
   const { originalFilename, storagePath } = req.body;
-  const document = await documentService.createDocument({
-    originalFilename,
-    storagePath,
-  });
+  const document = await documentService.createDocument(
+    {
+      originalFilename,
+      storagePath,
+    },
+    req.userId
+  );
 
   res.status(201).json({
     success: true,
@@ -39,7 +45,10 @@ export const createDocumentRecord = catchAsync(async (req, res) => {
 });
 
 export const getDocument = catchAsync(async (req, res) => {
-  const document = await documentService.getDocumentById(req.params.id);
+  const document = await documentService.getDocumentById(
+    req.params.id,
+    req.userId
+  );
 
   res.status(200).json({
     success: true,
@@ -48,7 +57,7 @@ export const getDocument = catchAsync(async (req, res) => {
 });
 
 export const listDocuments = catchAsync(async (req, res) => {
-  const documents = await documentService.listDocuments();
+  const documents = await documentService.listDocuments(req.userId);
 
   res.status(200).json({
     success: true,
@@ -57,6 +66,6 @@ export const listDocuments = catchAsync(async (req, res) => {
 });
 
 export const deleteDocument = catchAsync(async (req, res) => {
-  await documentService.removeDocument(req.params.id);
+  await documentService.removeDocument(req.params.id, req.userId);
   res.status(204).send();
 });

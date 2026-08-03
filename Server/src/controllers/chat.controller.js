@@ -6,7 +6,11 @@ import { answerQuestionInSession } from '../services/rag.service.js';
 
 export const createSession = catchAsync(async (req, res) => {
   const { title } = req.body;
-  const session = await chatService.startSession(req.params.id, title || null);
+  const session = await chatService.startSession(
+    req.params.id,
+    title || null,
+    req.userId
+  );
 
   res.status(201).json({
     success: true,
@@ -15,7 +19,7 @@ export const createSession = catchAsync(async (req, res) => {
 });
 
 export const listSessions = catchAsync(async (req, res) => {
-  const sessions = await chatService.listSessions(req.params.id);
+  const sessions = await chatService.listSessions(req.params.id, req.userId);
 
   res.status(200).json({
     success: true,
@@ -24,7 +28,10 @@ export const listSessions = catchAsync(async (req, res) => {
 });
 
 export const getSessionMessages = catchAsync(async (req, res) => {
-  const messages = await chatService.getSessionMessages(req.params.sessionId);
+  const messages = await chatService.getSessionMessages(
+    req.params.sessionId,
+    req.userId
+  );
 
   res.status(200).json({
     success: true,
@@ -34,7 +41,11 @@ export const getSessionMessages = catchAsync(async (req, res) => {
 
 export const askInSession = catchAsync(async (req, res) => {
   const { question } = req.body;
-  const result = await answerQuestionInSession(req.params.sessionId, question);
+  const result = await answerQuestionInSession(
+    req.params.sessionId,
+    question,
+    req.userId
+  );
 
   res.status(200).json({
     success: true,
