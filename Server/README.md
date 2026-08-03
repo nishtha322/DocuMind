@@ -1,137 +1,572 @@
 # DocuMind — Backend
 
-The backend API for **DocuMind**: a Retrieval-Augmented Generation (RAG) service that lets you upload a PDF and ask questions about it, grounded in the document's actual content, with conversation memory for natural follow-ups.
+The backend API for **DocuMind**, an AI-powered Retrieval-Augmented Generation (RAG) application that allows users to upload PDF documents and ask natural language questions grounded entirely in the document's content. The backend manages document ingestion, vector search, conversation memory, and anonymous browser sessions while exposing a clean REST API consumed by the React frontend.
 
-This document covers the **backend only** (Node.js/Express API, Modules 1-8). For the React frontend, see [`Client/README.md`](./Client/README.md). For the whole-project overview, see the [root README](./README.md).
+This README covers the **backend only**. For the frontend application, see [`Client/README.md`](./Client/README.md). For a complete project overview, architecture, and screenshots, refer to the repository's root `README.md`.
 
-## How it works
+---
+
+# Highlights
+
+- Upload and process PDF documents
+- Retrieval-Augmented Generation (RAG) using Google's Gemini models
+- Conversation memory with persistent chat sessions
+- Anonymous browser sessions using secure HttpOnly cookies
+- Per-user document and chat isolation without requiring login
+- PostgreSQL for relational storage
+- ChromaDB for semantic vector search
+- Layered architecture (Routes → Controllers → Services → Repositories)
+- OpenAPI (Swagger) documentation
+- Request validation with Zod
+- Rate limiting and centralized error handling
+- Comprehensive unit test suite with Vitest
+
+---
+
+# Architecture
 
 ```
-                 ┌──────────────┐
-  PDF upload ──▶ │   Express    │
-                 │   REST API   │
-                 └──────┬───────┘
-                        │
-        ┌───────────────┼────────────────┐
-        ▼               ▼                ▼
-  ┌───────────┐   ┌───────────┐   ┌─────────────┐
-  │ PostgreSQL│   │  ChromaDB │   │  Gemini API │
-  │ documents │   │  vectors  │   │ embeddings +│
-  │ chunks    │   │(per-chunk)│   │    chat     │
-  │ chat log  │   │           │   │             │
-  └───────────┘   └───────────┘   └─────────────┘
+                    Browser
+                         │
+                         │
+          HttpOnly Anonymous Session Cookie
+                         │
+                         ▼
+                Express REST API
+                         │
+        ┌────────────────┼────────────────┐
+        │                │                │
+        ▼                ▼                ▼
+ PostgreSQL          ChromaDB        Gemini API
+ Users               Vector Store    Embeddings
+ Documents           Similarity      Chat
+ Chat Sessions       Search
+ Chat Messages
 ```
 
-**Ingestion pipeline** (on upload): PDF → extract text (`pdf-parse`) → chunk into overlapping windows (LangChain `RecursiveCharacterTextSplitter`) → embed each chunk (Gemini `gemini-embedding-001`) → store vectors in ChromaDB, chunk text/metadata in Postgres.
+The backend follows a layered architecture where each layer has a single responsibility.
 
-**Query pipeline** (on question): embed the question → similarity search in ChromaDB, scoped to the document → build a grounded prompt from the retrieved chunks → generate an answer (Gemini `gemini-3.6-flash`) → persist the turn if it's part of a chat session.
+- **Routes** define API endpoints.
+- **Controllers** handle HTTP concerns.
+- **Services** implement business logic.
+- **Repositories** interact with PostgreSQL.
+- **Vector Store** handles semantic search through ChromaDB.
+- **AI Services** communicate with the Gemini API.
 
-Full architecture reasoning for every decision is documented inline in the source — see the header comment in each file under `src/`.
+This separation keeps the codebase maintainable, testable, and easy to extend.
 
-## Tech stack
+---
 
-| Layer | Choice | Why |
-|---|---|---|
-| Runtime | Node.js (ESM) | |
-| API | Express.js | |
-| Relational data | PostgreSQL (raw SQL, no ORM) | Transparent, reviewable schema; no ORM "magic" |
-| Vector store | ChromaDB | Purpose-built for similarity search; Postgres handles relational data instead |
-| Embeddings + chat | Gemini API via `@google/genai` | Current official SDK — not the deprecated `@google/generative-ai` |
-| Chunking | LangChain `RecursiveCharacterTextSplitter` | Respects sentence/paragraph boundaries, not naive fixed-size cuts |
-| Validation | Zod | ESM-native, composable |
-| Testing | Vitest | ESM-native, zero-config with this project's `"type": "module"` setup |
+# Anonymous Browser Sessions
 
-## Project structure
+DocuMind intentionally does **not require user registration or login**.
+
+Instead, every browser automatically receives a secure anonymous identity.
+
+When a user visits the application for the first time:
+
+1. The backend checks for an HttpOnly cookie.
+2. If no cookie exists, a new anonymous user is created.
+3. The browser receives a secure HttpOnly cookie containing its anonymous identity.
+4. Every subsequent request is automatically scoped to that anonymous user.
+
+As a result:
+
+- Documents remain private to each browser.
+- Chat history is isolated.
+- No authentication screens are required.
+- Users cannot access another browser's documents or conversations.
+
+---
+
+# How It Works
+
+## Document Ingestion Pipeline
+
+Whenever a PDF is uploaded, the backend performs the following pipeline:
+
+```
+PDF Upload
+     │
+     ▼
+Extract Text (pdf-parse)
+     │
+     ▼
+Chunk Document
+(LangChain RecursiveCharacterTextSplitter)
+     │
+     ▼
+Generate Embeddings
+(Gemini Embedding Model)
+     │
+     ▼
+Store Embeddings
+(ChromaDB)
+     │
+     ▼
+Store Metadata & Chunks
+(PostgreSQL)
+```
+
+Each document is converted into overlapping semantic chunks before embeddings are generated. This improves retrieval quality while preserving context between adjacent chunks.
+
+---
+
+## Question Answering Pipeline
+
+When a user asks a question:
+
+```
+User Question
+      │
+      ▼
+Generate Question Embedding
+      │
+      ▼
+Similarity Search
+(ChromaDB)
+      │
+      ▼
+Retrieve Relevant Chunks
+      │
+      ▼
+Construct Grounded Prompt
+      │
+      ▼
+Gemini Chat Model
+      │
+      ▼
+Grounded Answer
+      │
+      ▼
+Persist Conversation
+(PostgreSQL)
+```
+
+Instead of sending the complete PDF to the LLM, only the most relevant chunks are retrieved using semantic search. The generated answer is therefore grounded in the uploaded document rather than relying on the model's general knowledge.
+
+When the request belongs to an existing chat session, the backend also incorporates recent conversation history to support natural follow-up questions.
+
+---
+
+# Tech Stack
+
+| Layer | Technology |
+|--------|------------|
+| Runtime | Node.js (ES Modules) |
+| Framework | Express.js |
+| Database | PostgreSQL |
+| Vector Database | ChromaDB |
+| Embedding Model | Gemini Embedding (`gemini-embedding-001`) |
+| Chat Model | Gemini (`gemini-3.6-flash`) |
+| Chunking | LangChain RecursiveCharacterTextSplitter |
+| Validation | Zod |
+| Logging | Pino |
+| Documentation | OpenAPI (Swagger UI) |
+| Testing | Vitest |
+| File Uploads | Multer |
+| PDF Parsing | pdf-parse |
+
+# Project Structure
 
 ```
 src/
-├── routes/          URL -> controller mapping only
-├── controllers/      HTTP concerns (parse request, shape response)
-├── services/         Business logic / orchestration
-├── repositories/      Only layer that talks to Postgres
-├── vector-store/      Only layer that talks to ChromaDB
-├── ai/                Only layer that talks to Gemini
-├── prompts/           Versioned prompt templates
-├── middleware/         Validation, rate limiting, errors, upload
-├── validators/         Zod schemas
-├── config/             Env loading, DB pool, Chroma client
-└── utils/              Logger, AppError, catchAsync
-tests/unit/          Unit tests (mirrors src/)
-migrations/          Raw SQL schema
-scripts/migrate.js   Runs migrations in order
-openapi.yaml         Full API spec (served at /api-docs)
+├── ai/                    Gemini embedding and chat services
+├── config/                Environment loading, PostgreSQL, ChromaDB
+├── controllers/           HTTP request/response handling
+├── middleware/            Validation, uploads, rate limiting, anonymous sessions
+├── prompts/               Prompt templates for RAG
+├── repositories/          PostgreSQL data access layer
+├── routes/                API route definitions
+├── services/              Business logic
+├── utils/                 Logger, AppError, helpers
+├── validators/            Zod schemas
+└── vector-store/          ChromaDB integration
+
+migrations/                Database schema
+scripts/                   Migration scripts
+tests/                     Unit tests
+openapi.yaml               OpenAPI specification
 ```
 
-## Getting started
+The backend follows a layered architecture:
+
+- **Routes** map URLs to controllers.
+- **Controllers** validate requests and shape responses.
+- **Services** orchestrate application logic.
+- **Repositories** are the only layer that communicates with PostgreSQL.
+- **Vector Store** is the only layer that communicates with ChromaDB.
+- **AI Services** are the only layer that communicates with Gemini.
+
+This separation keeps responsibilities clear and simplifies testing and maintenance.
+
+---
+
+# Getting Started
+
+## Prerequisites
+
+Before running the project, install:
+
+- Node.js 20+
+- PostgreSQL 14+
+- Python 3.10+ (for ChromaDB)
+- Google Gemini API Key
+
+---
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/nishtha322/DocuMind.git
+
+cd DocuMind/Server
+```
+
+---
+
+## Install Dependencies
 
 ```bash
 npm install
-cp .env.example .env   # fill in GEMINI_API_KEY and DATABASE_URL
+```
 
-# Postgres: point DATABASE_URL at any Postgres 14+ instance, then:
+---
+
+## Configure Environment Variables
+
+Copy the example environment file.
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required values.
+
+---
+
+## Database Setup
+
+Create a PostgreSQL database.
+
+Run all migrations:
+
+```bash
 npm run migrate
+```
 
-# ChromaDB:
-pip install chromadb --break-system-packages
-chroma run --path ./chroma_data   # runs on :8000
+---
 
+## Start ChromaDB
+
+Install ChromaDB if you haven't already:
+
+```bash
+pip install chromadb
+```
+
+Run the vector database:
+
+```bash
+chroma run --path ./chroma_data
+```
+
+By default ChromaDB starts on:
+
+```
+http://localhost:8000
+```
+
+---
+
+## Start the Backend
+
+```bash
 npm run dev
 ```
 
-The API is now running at `http://localhost:5000`, interactive docs at `http://localhost:5000/api-docs`.
+The backend runs on:
 
-### Environment variables
-
-| Variable | Required | Default | Notes |
-|---|---|---|---|
-| `PORT` | yes | — | |
-| `DATABASE_URL` | yes | — | `postgresql://user:pass@host:port/db` |
-| `GEMINI_API_KEY` | yes | — | https://aistudio.google.com/apikey |
-| `GEMINI_EMBEDDING_MODEL` | no | `gemini-embedding-001` | |
-| `GEMINI_EMBEDDING_DIMENSIONS` | no | `768` | |
-| `GEMINI_CHAT_MODEL` | no | `gemini-3.6-flash` | |
-| `GEMINI_THINKING_LEVEL` | no | `LOW` | `MINIMAL`\|`LOW`\|`MEDIUM`\|`HIGH` |
-| `CHROMA_HOST` | no | `localhost` | |
-| `CHROMA_PORT` | no | `8000` | |
-
-## API overview
-
-Full interactive docs at `GET /api-docs` once running. Summary:
-
-| Endpoint | Purpose |
-|---|---|
-| `POST /api/v1/documents/upload` | Upload a PDF, runs the full ingestion pipeline |
-| `GET /api/v1/documents` | List all documents |
-| `GET /api/v1/documents/:id` | Document status/metadata |
-| `GET /api/v1/documents/:id/chunks` | Inspect extracted chunks |
-| `POST /api/v1/documents/:id/ask` | One-off question, no memory |
-| `POST /api/v1/documents/:id/sessions` | Start a chat session |
-| `GET /api/v1/documents/:id/sessions` | List chat sessions for a document |
-| `POST /api/v1/sessions/:sessionId/messages` | Ask with conversation memory |
-| `GET /api/v1/sessions/:sessionId/messages` | Full chat history |
-| `DELETE /api/v1/documents/:id` | Delete a document (cascades to chunks/vectors/chat) |
-| `GET /api/v1/health` | Liveness + Postgres/ChromaDB connectivity |
-
-## Testing
-
-```bash
-npm test              # run once
-npm run test:watch    # watch mode
-npm run test:coverage # with coverage report
+```
+http://localhost:5000
 ```
 
-**What's unit-tested (mocked I/O, fast, no external services needed):** orchestration logic — the upload pipeline's status transitions and failure handling, RAG's validation/guard logic (400/404/409 paths), conversation history mapping, the chunking algorithm, validation middleware, error utilities.
+Swagger documentation:
 
-**What's verified by manual end-to-end testing instead:** the actual Postgres/ChromaDB/Gemini integrations — these need real (or realistically mocked) external services to mean anything. They were exercised against a real local Postgres + ChromaDB instance, and a mock Gemini server matching the real API's request/response shape, throughout development. This is a deliberate split, not a coverage gap: a unit test asserting "the SQL string contains INSERT" proves nothing a human reviewer couldn't see by reading the query.
+```
+http://localhost:5000/api-docs
+```
 
-## Known limitations / deliberate scope decisions
+---
 
-- **No authentication** — all documents belong to a single seeded demo user. Zod validation, rate limiting, and layered architecture are still fully in place.
-- **Fixed conversation history window** (last 10 messages) rather than summarization-based memory — the simplest thing that works.
-- **Single Chroma collection** for all documents, scoped by metadata filtering — simpler operationally than one collection per document.
-- **In-memory rate limiting** — resets on restart, doesn't share state across multiple instances. A Redis-backed store is the production upgrade path.
-- **Scanned/image-only PDFs are not supported** — no OCR step; the app fails clearly rather than silently returning an empty document.
+# Environment Variables
 
-## Modules
+| Variable | Required | Description |
+|-----------|----------|-------------|
+| `PORT` | Yes | Backend server port |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `GEMINI_EMBEDDING_MODEL` | No | Embedding model (default: `gemini-embedding-001`) |
+| `GEMINI_CHAT_MODEL` | No | Chat model (default: `gemini-3.6-flash`) |
+| `GEMINI_EMBEDDING_DIMENSIONS` | No | Embedding vector dimensions |
+| `GEMINI_THINKING_LEVEL` | No | Gemini reasoning level |
+| `CHROMA_HOST` | No | ChromaDB host |
+| `CHROMA_PORT` | No | ChromaDB port |
 
-This backend was built in 8 incremental, independently-tested modules: project foundation, PostgreSQL integration, PDF upload & parsing, embeddings & ChromaDB, the RAG query pipeline, conversation memory, API hardening (validation/rate limiting/docs), and testing. Each module's design reasoning is documented in the source file headers under `src/`.
+Example:
+
+```env
+PORT=5000
+
+DATABASE_URL=postgresql://username:password@localhost:5432/ai_document_assistant
+
+GEMINI_API_KEY=your_api_key
+
+GEMINI_CHAT_MODEL=gemini-3.6-flash
+GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
+```
+
+---
+
+# Request Flow
+
+Every request follows the same flow:
+
+```
+Browser
+   │
+   ▼
+Anonymous Session Middleware
+(HttpOnly Cookie)
+   │
+   ▼
+Express Route
+   │
+   ▼
+Controller
+   │
+   ▼
+Service
+   │
+   ▼
+Repository / AI / ChromaDB
+   │
+   ▼
+Response
+```
+
+The anonymous session middleware automatically identifies the current browser using a secure HttpOnly cookie. Every document, chat session, and question-answer request is scoped to that anonymous user before reaching the business logic.
+
+# API Overview
+
+Once the backend is running, complete interactive API documentation is available at:
+
+```
+http://localhost:5000/api-docs
+```
+
+## Document APIs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/documents/upload` | Upload and process a PDF |
+| GET | `/api/v1/documents` | List the current user's documents |
+| GET | `/api/v1/documents/:id` | Retrieve document metadata |
+| GET | `/api/v1/documents/:id/chunks` | View extracted document chunks |
+| DELETE | `/api/v1/documents/:id` | Delete a document and all related data |
+
+---
+
+## Question Answering
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/documents/:id/ask` | Ask a one-off question about a document |
+
+---
+
+## Chat Sessions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/documents/:id/sessions` | Create a chat session |
+| GET | `/api/v1/documents/:id/sessions` | List chat sessions |
+| POST | `/api/v1/sessions/:sessionId/messages` | Send a chat message |
+| GET | `/api/v1/sessions/:sessionId/messages` | Retrieve chat history |
+
+---
+
+## Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/health` | Verify API, PostgreSQL, and ChromaDB connectivity |
+
+---
+
+# Testing
+
+The backend includes a comprehensive unit test suite built with **Vitest**.
+
+Run the tests:
+
+```bash
+npm test
+```
+
+Watch mode:
+
+```bash
+npm run test:watch
+```
+
+Coverage:
+
+```bash
+npm run test:coverage
+```
+
+### Unit Tests Cover
+
+- Document upload orchestration
+- PDF processing pipeline
+- Chunk generation
+- Embedding workflow
+- Conversation memory
+- RAG service validation
+- Error handling
+- Middleware
+- Zod validation
+- Status transitions
+- Failure scenarios
+
+External services such as PostgreSQL, ChromaDB, and Gemini are mocked during unit testing to keep tests fast and deterministic.
+
+---
+
+# Security & Privacy
+
+Although DocuMind does not require user accounts, every browser receives its own anonymous identity.
+
+The backend provides:
+
+- Anonymous browser sessions
+- Secure HttpOnly cookies
+- Per-user document isolation
+- Per-user chat history
+- Ownership validation before every protected operation
+- Request validation using Zod
+- Rate limiting
+- Centralized error handling
+
+Each browser can access only its own documents and conversations. Uploaded documents are never shared between anonymous users.
+
+---
+
+# Design Decisions
+
+Some implementation choices were made intentionally to keep the project focused while following production-oriented architecture.
+
+### Why PostgreSQL?
+
+PostgreSQL stores structured application data:
+
+- Users
+- Documents
+- Metadata
+- Chat sessions
+- Chat messages
+
+Its relational model is a natural fit for this information.
+
+---
+
+### Why ChromaDB?
+
+Semantic search requires efficient vector similarity search.
+
+Instead of storing embeddings inside PostgreSQL, ChromaDB provides:
+
+- Fast nearest-neighbor search
+- Metadata filtering
+- Scalable vector storage
+
+---
+
+### Why LangChain Only for Chunking?
+
+LangChain is used only for document chunking.
+
+Prompt construction, retrieval orchestration, and application logic remain fully custom to keep the architecture transparent.
+
+---
+
+### Why Anonymous Sessions?
+
+Traditional authentication would introduce unnecessary friction for this project.
+
+Anonymous browser sessions demonstrate:
+
+- Cookie-based session management
+- Backend authorization
+- User isolation
+- Secure ownership checks
+
+without requiring login or signup.
+
+---
+
+# Known Limitations
+
+- No traditional authentication (login/signup)
+- Anonymous sessions are browser-specific
+- Scanned PDFs requiring OCR are not supported
+- Fixed conversation history window
+- In-memory rate limiting (Redis would be the production upgrade)
+- Single ChromaDB collection with metadata filtering
+
+These choices simplify deployment while keeping the architecture clean and extensible.
+
+---
+
+# Development Modules
+
+The backend was developed incrementally across eight modules.
+
+1. Project setup and architecture
+2. PostgreSQL integration
+3. PDF upload and parsing
+4. Embeddings and ChromaDB integration
+5. Retrieval-Augmented Generation pipeline
+6. Conversation memory
+7. API hardening (validation, rate limiting, Swagger)
+8. Testing and documentation
+
+Each module builds upon the previous one while preserving clear separation of concerns.
+
+---
+
+# Future Improvements
+
+Potential production enhancements include:
+
+- User authentication (OAuth/JWT)
+- OCR support for scanned PDFs
+- Streaming LLM responses
+- Background document processing
+- Redis-backed distributed rate limiting
+- Hybrid keyword + semantic search
+- Multi-document querying
+- Document sharing and collaboration
+- Conversation summarization for long chats
+
+---
+
+
+# Author
+
+**Nishtha Srivastava**
+

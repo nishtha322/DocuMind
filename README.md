@@ -1,51 +1,57 @@
 # DocuMind
 
-DocuMind is a full-stack Retrieval-Augmented Generation (RAG) application that lets users upload PDF documents and ask natural language questions grounded entirely in the document's content.
+An AI-powered **Retrieval-Augmented Generation (RAG)** application that allows users to upload PDF documents and ask natural language questions grounded entirely in the document's content.
 
-The project combines a React frontend with a Node.js/Express backend, PostgreSQL for structured data, ChromaDB for vector search, and Google's Gemini models for embeddings and answer generation.
+DocuMind combines semantic search, large language models, and conversation memory to provide accurate, context-aware answers while maintaining **private anonymous browser sessions**—no login required.
 
 ---
 
-## Features
+# Features
 
-- Upload PDF documents
-- Automatic document parsing and chunking
-- Semantic search using vector embeddings
+- Upload and process PDF documents
+- Automatic text extraction and semantic chunking
+- Retrieval-Augmented Generation (RAG)
 - AI-powered question answering with source citations
 - Persistent conversation memory
-- Document management (view, delete, restore conversations)
-- Interactive API documentation (Swagger)
-- Responsive React frontend
-- Unit-tested backend architecture
+- Anonymous browser sessions using secure HttpOnly cookies
+- Per-user document and chat isolation
+- Responsive React interface
+- PostgreSQL for relational data
+- ChromaDB for vector similarity search
+- Interactive Swagger API documentation
+- Comprehensive backend unit testing
 
 ---
 
-## Architecture
+# Architecture
 
 ```
-                  +----------------------+
-                  |    React Frontend    |
-                  |  (Vite + Tailwind)   |
-                  +----------+-----------+
-                             |
-                             | REST API
-                             |
-                  +----------v-----------+
-                  |  Express Backend API |
-                  +----------+-----------+
-                             |
-          +------------------+------------------+
-          |                  |                  |
-          v                  v                  v
-   PostgreSQL          ChromaDB          Gemini API
- Documents & Chats     Vector Search     Embeddings + Chat
+                      Browser
+                           │
+            HttpOnly Anonymous Session
+                           │
+                           ▼
+                 React Frontend (Vite)
+                           │
+                      REST API
+                           │
+                           ▼
+                Express Backend API
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+        ▼                  ▼                  ▼
+  PostgreSQL          ChromaDB          Gemini API
+ Users                Vector Search     Embeddings
+ Documents            Semantic Search   Chat Generation
+ Chat History
 ```
 
 ---
 
-## Tech Stack
+# Tech Stack
 
-### Frontend
+## Frontend
 
 - React 19
 - Vite
@@ -54,51 +60,118 @@ The project combines a React frontend with a Node.js/Express backend, PostgreSQL
 - Axios
 - Lucide React
 
-### Backend
+## Backend
 
 - Node.js
-- Express
+- Express.js
 - PostgreSQL
 - ChromaDB
 - Gemini API (`@google/genai`)
-- LangChain Text Splitters
+- LangChain
 - Zod
+- Swagger (OpenAPI)
 - Vitest
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 DocuMind/
 │
-├── Client/      # React frontend
-├── Server/      # Express backend
-└── README.md
+├── Client/        React Frontend
+├── Server/        Express Backend API
+├── README.md
+│
+└── ...
 ```
 
 ---
 
-## Getting Started
+# How It Works
 
-### 1. Clone the repository
+### Document Processing
+
+```
+Upload PDF
+     │
+     ▼
+Extract Text
+     │
+     ▼
+Chunk Document
+     │
+     ▼
+Generate Embeddings
+     │
+     ▼
+Store in ChromaDB
+     │
+     ▼
+Store Metadata in PostgreSQL
+```
+
+---
+
+### Question Answering
+
+```
+User Question
+      │
+      ▼
+Generate Embedding
+      │
+      ▼
+Semantic Search
+      │
+      ▼
+Retrieve Relevant Chunks
+      │
+      ▼
+Ground Prompt with Context
+      │
+      ▼
+Gemini Chat Model
+      │
+      ▼
+Answer + Sources
+```
+
+---
+
+# Privacy
+
+DocuMind does not require registration or login.
+
+Each browser automatically receives a secure anonymous identity through an HttpOnly cookie.
+
+This provides:
+
+- Private document libraries
+- Private chat history
+- Browser-specific sessions
+- Automatic ownership enforcement
+- No shared documents between users
+
+---
+
+# Getting Started
+
+Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/nishtha322/DocuMind.git
+
 cd DocuMind
 ```
 
-### 2. Start the backend
-
-See:
+Backend setup:
 
 ```
 Server/README.md
 ```
 
-### 3. Start the frontend
-
-See:
+Frontend setup:
 
 ```
 Client/README.md
@@ -106,52 +179,69 @@ Client/README.md
 
 ---
 
-## Screenshots
+# Screenshots
 
-> Add screenshots or a demo GIF here after completing the UI.
+> Add screenshots here.
+
+Suggested screenshots:
+
+- Upload page
+- Chat interface
+- Source citations
+- Swagger API
+- Architecture diagram
 
 ---
 
-## Documentation
+# Documentation
 
-- **Frontend:** `Client/README.md`
-- **Backend:** `Server/README.md`
+| Component | Documentation |
+|-----------|---------------|
+| Backend | `Server/README.md` |
+| Frontend | `Client/README.md` |
 
 ---
 
-## Project Highlights
+# Highlights
 
 ### Backend
 
 - Layered architecture
-- Retrieval-Augmented Generation (RAG)
+- Retrieval-Augmented Generation
 - Conversation memory
-- PostgreSQL + ChromaDB
-- OpenAPI / Swagger
+- PostgreSQL + ChromaDB integration
+- Anonymous browser sessions
+- HttpOnly cookie-based user isolation
+- Swagger API documentation
+- Zod validation
 - Rate limiting
-- Validation with Zod
 - Unit testing with Vitest
 
 ### Frontend
 
 - Modern React architecture
-- Responsive interface
-- Drag-and-drop PDF upload
-- Live processing status
-- Source-cited conversations
-- Persistent chat history
-- Clean component-based design
+- Responsive design
+- Drag-and-drop uploads
+- Live document processing status
+- Persistent conversations
+- Source-cited AI responses
+- Centralized API layer
+- Automatic cookie-based sessions
 
 ---
 
-## Future Improvements
+# Future Improvements
 
 - User authentication
 - OCR support for scanned PDFs
 - Streaming AI responses
+- Hybrid keyword + semantic search
+- Multi-document querying
 - Document sharing
-- Multi-user workspaces
-- Hybrid search (keyword + vector)
+- Background document processing
 
 ---
 
+# Author
+
+**Nishtha Srivastava**

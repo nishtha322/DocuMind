@@ -1,83 +1,249 @@
 # DocuMind — Frontend (Client)
 
-The React frontend for **DocuMind**. A clean, minimal UI in the spirit of ChatPDF/NotebookLM/Perplexity: upload a PDF, watch it process, and have a grounded, source-cited conversation with it.
+The React frontend for **DocuMind**, an AI-powered Retrieval-Augmented Generation (RAG) application that enables users to upload PDF documents, ask natural language questions, and receive grounded answers based entirely on the document's content.
 
-This document covers the **frontend only**. For the backend API this talks to, see [`../BACKEND_README.md`](../BACKEND_README.md). For the whole-project overview, see the [root README](../README.md).
+The frontend provides a clean, responsive interface inspired by modern AI applications such as ChatPDF, NotebookLM, and Perplexity while communicating with the DocuMind backend through a REST API.
 
-## Tech stack
+This README covers the **frontend only**. For the backend implementation, see [`../Server/README.md`](../Server/README.md). For the complete project overview, architecture, and screenshots, see the repository's root `README.md`.
 
-React 19 · Vite · Tailwind CSS v4 · React Router 7 · Axios · Lucide React
+---
 
-No Redux, Zustand, Material UI, Bootstrap, Chakra UI, or Next.js — kept deliberately minimal.
+# Features
 
-## Features
+- Upload PDF documents using drag-and-drop or file browser
+- Automatic document processing status updates
+- Persistent AI chat with conversation memory
+- Source citations for every AI response
+- Anonymous browser sessions (no login required)
+- Per-browser document isolation
+- Delete uploaded documents
+- Responsive sidebar and mobile-friendly layout
+- Loading, empty, and error states throughout the application
+- Automatic scrolling during conversations
+- Live typing indicator while waiting for AI responses
 
-- **Upload PDF** — drag-and-drop or click-to-browse, from the sidebar or the empty state
-- **Documents list** — live status per document (`uploaded → parsing → embedding → ready`/`failed`), polled automatically while processing
-- **Select document** — click any document to open its chat workspace; the active one is highlighted
-- **Conversations** — a chat session is created automatically on your first question; **conversation history is restored** if you revisit a document you've already talked to (persisted server-side, survives a page reload)
-- **Ask questions** — Enter-to-send, live "typing" indicator while waiting on an answer
-- **Sources under each answer** — every response shows which document chunks it was grounded in
-- **Delete document** — with confirmation, removes it (and its chat history) from the list
-- **Loading, empty, and error states** — throughout: skeleton rows while the document list loads, empty states for no documents/no messages yet, and inline error banners for failed requests (upload rejected, rate-limited, etc.)
-- **Responsive** — the sidebar becomes an off-canvas drawer below tablet width
-- **Auto-scroll** — the conversation view follows the latest message
+---
 
-## Project structure
+# Tech Stack
+
+| Layer | Technology |
+|--------|------------|
+| Framework | React 19 |
+| Build Tool | Vite |
+| Styling | Tailwind CSS v4 |
+| Routing | React Router 7 |
+| HTTP Client | Axios |
+| Icons | Lucide React |
+
+The frontend intentionally avoids heavy state-management or UI frameworks to keep the application lightweight and easy to understand.
+
+---
+
+# Project Structure
 
 ```
 src/
-├── api/            Axios calls — the ONLY place axios is imported anywhere in the app
-│   ├── client.js    Configured axios instance + error normalization
-│   ├── documents.js Upload/list/get/delete/chunks/ask
-│   ├── chat.js      Sessions + session messages (conversation memory)
-│   └── health.js    Backend connectivity check
-├── hooks/           Data-fetching + state logic, kept out of components
-│   ├── useDocuments.js       Shared document list state
-│   ├── useDocumentStatus.js  Polls a document while it's processing
-│   ├── useChatSession.js     Conversation history + asking questions
-│   └── useHealthStatus.js    Live backend connection status
+├── api/
+│   ├── client.js
+│   ├── documents.js
+│   ├── chat.js
+│   └── health.js
+│
 ├── components/
-│   ├── layout/       AppLayout (shell), Sidebar
-│   ├── ui/           StatusBadge, Spinner, ErrorBanner, SkeletonRow
-│   ├── documents/    UploadDropzone, DocumentCard
-│   └── chat/         MessageBubble, ChatInput, TypingIndicator
+│   ├── chat/
+│   ├── documents/
+│   ├── layout/
+│   └── ui/
+│
+├── hooks/
+│   ├── useChatSession.js
+│   ├── useDocuments.js
+│   ├── useDocumentStatus.js
+│   └── useHealthStatus.js
+│
 ├── pages/
-│   ├── UploadPage.jsx        "/" — empty state / upload entry point
-│   └── DocumentWorkspace.jsx "/documents/:id" — the chat interface
-├── App.jsx          Route map
+│   ├── UploadPage.jsx
+│   └── DocumentWorkspace.jsx
+│
+├── App.jsx
 └── main.jsx
 ```
 
-**API layer discipline:** every function in `src/api/*.js` maps 1:1 to a real backend endpoint (see `../openapi.yaml`) — nothing invented, nothing extra. Components and hooks import from `api/`, never call `axios` directly.
+The application follows a simple architecture:
 
-**Shared state:** the document list is the one piece of state genuinely needed across pages. It's owned by a single hook (`useDocuments`), instantiated once in `AppLayout`, and passed to child routes via React Router's `Outlet` context — no Context provider boilerplate, no state management library.
+- **API Layer** handles all backend communication.
+- **Hooks** contain reusable data-fetching and application logic.
+- **Components** focus solely on presentation.
+- **Pages** compose features into complete screens.
 
-## Getting started
+Axios is imported only inside the `api` folder, ensuring every backend request passes through a single HTTP client configuration.
 
-Requires the backend running first (see [`../BACKEND_README.md`](../BACKEND_README.md)).
+---
+
+# Anonymous Browser Sessions
+
+DocuMind does not require user registration or login.
+
+The frontend automatically communicates with the backend using secure HttpOnly cookies.
+
+Each browser receives its own anonymous session, allowing:
+
+- Independent document libraries
+- Private chat history
+- Automatic session persistence
+- No authentication screens
+
+Because the session is managed entirely by the backend, the frontend never stores user identifiers in localStorage or sessionStorage.
+
+---
+
+# Getting Started
+
+## Prerequisites
+
+The backend must already be running.
+
+See:
+
+```
+../Server/README.md
+```
+
+---
+
+## Install Dependencies
 
 ```bash
 npm install
+```
+
+---
+
+## Configure Environment
+
+Create a `.env` file.
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+---
+
+## Run the Development Server
+
+```bash
 npm run dev
 ```
 
-Runs at `http://localhost:5173`. The dev server proxies any request to `/api/*` straight to the backend at `http://localhost:5000` (configured in `vite.config.js`) — this is what lets the app call relative paths like `/api/v1/documents` with **zero CORS configuration needed on the backend**.
+The application runs at:
 
-```bash
-npm run build     # production build → dist/
-npm run preview   # preview the production build locally
+```
+http://localhost:5173
 ```
 
-## Design notes
+---
 
-- **Why Tailwind v4's `@tailwindcss/vite` plugin** instead of the classic PostCSS setup: it's the current recommended install path — no `tailwind.config.js` boilerplate; theme tokens live in `src/index.css` via `@theme`.
-- **Why polling instead of WebSockets/SSE** for document processing status: the backend has no push channel, and polling every 2s is simple, stateless, and good enough for a single-user demo tool.
-- **Why the chat history restore happens in a hook, not a component:** "conversation history" as a feature means checking for an existing session on mount and replaying its messages — that's data-fetching logic, not rendering logic, so it lives in `useChatSession`, not in `DocumentWorkspace.jsx`.
+## Production Build
 
-## Build history
+```bash
+npm run build
+```
 
-Built in 3 incremental, independently-tested modules:
-1. **Project setup** — Vite/React/Tailwind/Router scaffold, API layer, basic layout, backend connectivity check.
-2. **Core features** — upload, document list, chat with conversation memory, sources, delete, loading/error states.
-3. **UI polish** — animations, responsive off-canvas sidebar, auto-scroll, refined components, typing indicator.
+Preview locally:
+
+```bash
+npm run preview
+```
+
+---
+
+# Backend Communication
+
+All HTTP requests are handled through a single Axios instance.
+
+The client automatically:
+
+- Sends credentials with every request
+- Normalizes API errors
+- Uses a configurable API base URL
+
+Since anonymous sessions use secure HttpOnly cookies, Axios is configured with:
+
+```javascript
+withCredentials: true
+```
+
+No authentication tokens are stored on the client.
+
+---
+
+# User Experience
+
+The frontend continuously provides feedback during long-running operations.
+
+Examples include:
+
+- Document upload progress
+- Processing status polling
+- Skeleton loading states
+- Typing indicator
+- Error banners
+- Empty states
+- Automatic scrolling
+
+This keeps interactions responsive while the backend performs document parsing, embedding generation, and retrieval.
+
+---
+
+# Design Decisions
+
+## Why React Hooks?
+
+Custom hooks separate business logic from UI components, making the application easier to maintain and test.
+
+---
+
+## Why Polling?
+
+The backend processes uploaded documents asynchronously.
+
+Polling every few seconds provides a simple, reliable solution without introducing WebSockets or Server-Sent Events.
+
+---
+
+## Why Tailwind CSS v4?
+
+Tailwind provides utility-first styling with minimal CSS while keeping components easy to customize.
+
+---
+
+## Why a Centralized API Layer?
+
+Every backend request passes through the same Axios client.
+
+This provides:
+
+- Consistent error handling
+- Shared configuration
+- Credential management
+- Easier maintenance
+
+---
+
+# Future Improvements
+
+Potential enhancements include:
+
+- Streaming AI responses
+- Drag-and-drop multiple document uploads
+- Dark mode
+- Keyboard shortcuts
+- Markdown rendering for AI responses
+- Document search
+- Better mobile gestures
+
+---
+
+# Author
+
+**Nishtha Srivastava**
