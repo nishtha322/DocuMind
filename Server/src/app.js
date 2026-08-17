@@ -23,12 +23,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 // Enable CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:5173',
-      'https://documind-production-1664.up.railway.app',
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   })
